@@ -81,12 +81,21 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .world-name-input{ background:transparent; border:none; border-bottom:1px dashed var(--border-brass); color:var(--parchment);
   font-family:'Cinzel', serif; font-size:17px; font-weight:600; padding:2px 4px; min-width:140px; }
 .world-name-input:focus{ outline:none; border-bottom-color:var(--verdigris); }
-.nav-dropdown{ position:relative; }
-.nav-menu{ position:absolute; top:120%; left:0; background:var(--bg-panel-raised); border:1px solid var(--border-brass); border-radius:8px; padding:6px; display:none; flex-direction:column; min-width:170px; z-index:80; box-shadow:0 10px 24px rgba(0,0,0,0.4); animation: fadeInUp 0.15s ease; }
-.nav-menu.open{ display:flex; }
-.nav-menu button{ background:transparent; border:none; color:var(--text-dim2); text-align:left; padding:9px 12px; border-radius:5px; font-size:13px; }
+.nav-edge-btn{ position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:90;
+  background:var(--bg-panel-raised); border:1px solid var(--border-brass); border-left:none; color:var(--brass-bright);
+  width:26px; height:56px; border-radius:0 10px 10px 0; font-size:15px; display:flex; align-items:center; justify-content:center;
+  box-shadow:3px 0 10px rgba(0,0,0,0.35); transition:width 0.15s ease, background 0.15s ease; }
+.nav-edge-btn:hover{ width:32px; background:var(--bg-panel-hover); }
+.nav-edge-btn.open{ transform:translateY(-50%) rotate(180deg); }
+.nav-drawer-overlay{ position:fixed; inset:0; background:rgba(6,4,2,0.5); z-index:88; display:none; }
+.nav-drawer-overlay.open{ display:block; }
+.nav-menu{ position:fixed; top:0; left:0; bottom:0; background:var(--bg-panel-raised); border-right:1px solid var(--border-brass); padding:70px 10px 20px;
+  display:flex; flex-direction:column; gap:2px; min-width:200px; z-index:89; box-shadow:8px 0 24px rgba(0,0,0,0.4);
+  transform:translateX(-100%); transition:transform 0.22s ease; }
+.nav-menu.open{ transform:translateX(0); }
+.nav-menu button{ background:transparent; border:none; color:var(--text-dim2); text-align:left; padding:11px 14px; border-radius:6px; font-size:14px; }
 .nav-menu button:hover{ background:var(--bg-panel-hover); color:var(--parchment); }
-.nav-menu button.active{ color:var(--brass-bright); }
+.nav-menu button.active{ color:var(--brass-bright); background:rgba(201,146,47,0.08); }
 .tab{ background:transparent; border:1px solid var(--border-brass); color:var(--text-dim2); padding:8px 16px; border-radius:3px; font-size:12px; letter-spacing:0.05em; }
 .tab:hover{ color:var(--parchment); }
 .topbar-actions{ display:flex; align-items:center; gap:10px; margin-left:auto; }
@@ -177,8 +186,11 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 
 /* WORKSPACE (unified with Fichas) */
 .workspace-inline{ background:var(--parchment); color:var(--ink); border-radius:12px; max-width:920px; box-shadow:0 10px 30px rgba(0,0,0,0.3); position:relative; animation: fadeInUp 0.22s ease; }
-.ws-topbar{ display:flex; align-items:center; gap:10px; padding:14px 20px; background: rgba(0,0,0,0.06); border-radius:12px 12px 0 0; flex-wrap:wrap; }
+.ws-topbar{ display:flex; align-items:center; gap:10px; padding:14px 20px; background: rgba(35,25,20,0.9); border-radius:12px 12px 0 0; flex-wrap:wrap; }
 .ws-topbar .btn-ghost, .ws-topbar .btn-brass{ padding:7px 14px; font-size:11.5px; }
+.ws-topbar .btn-ghost{ color: var(--parchment-dim); border-color: rgba(232,220,195,0.35); }
+.ws-topbar .btn-ghost:hover{ color: var(--parchment); border-color: var(--brass-bright); }
+.ws-topbar .hint{ color: var(--parchment-dim); }
 .ws-cover{ height:220px; background-size:cover; background-position:center; background-color:#d8c8a0; position:relative; overflow:hidden; cursor:grab; }
 .ws-cover:active{ cursor:grabbing; }
 .ws-cover .cover-hint{ font-family:'Special Elite',monospace; font-size:12px; color:#6b6350; background: rgba(255,255,255,0.55); padding:6px 12px; border-radius:12px; pointer-events:none; }
@@ -301,22 +313,22 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 </head>
 <body>
 
+<button class="nav-edge-btn" id="navEdgeBtn" title="Secciones" type="button">▸</button>
+<div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+<div class="nav-menu" id="navMenu">
+  <button data-view="home" class="active">Inicio</button>
+  <button data-view="fichas">Fichas</button>
+  <button data-view="diario">Diario</button>
+  <button data-view="bitacora">Bitácora</button>
+  <button data-view="canvas">Canvas</button>
+  <button data-view="mapas">Mapas</button>
+  <button data-view="grimorio">Grimorio</button>
+</div>
+
 <div class="topbar">
   <div class="brand-mark">⚙ CÓDICE</div>
   <input id="worldName" class="world-name-input" value="Mundo sin nombre" spellcheck="false">
   <button class="rail-btn" id="railToggleBtn" type="button">☰ Panel</button>
-  <div class="nav-dropdown">
-    <button class="tab" id="navMenuBtn" type="button">☰ Secciones ▾</button>
-    <div class="nav-menu" id="navMenu">
-      <button data-view="home" class="active">Inicio</button>
-      <button data-view="fichas">Fichas</button>
-      <button data-view="diario">Diario</button>
-      <button data-view="bitacora">Bitácora</button>
-      <button data-view="canvas">Canvas</button>
-      <button data-view="mapas">Mapas</button>
-      <button data-view="grimorio">Grimorio</button>
-    </div>
-  </div>
   <div class="topbar-actions">
     <button class="icon-round-btn" id="settingsBtn" title="Ajustes" type="button">⚙</button>
     <button class="icon-round-btn" id="folderBtn" title="Conectar carpeta" type="button">📁</button>
@@ -331,9 +343,9 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 <section id="view-home" class="view active">
   <div class="home-panel">
     <div class="home-copy">
-      <div class="home-overline">TU LABORATORIO</div>
-      <h1 class="home-title">Escribe, conecta y explora tu mundo.</h1>
-      <p class="home-text">Tus cartas aparecen aquí cuando volvés al proyecto.</p>
+      <div class="home-overline" id="homeOverline">TU LABORATORIO</div>
+      <h1 class="home-title" id="homeGreetingTitle">Escribe, conecta y explora tu mundo.</h1>
+      <p class="home-text" id="homeGreetingText">Tus cartas aparecen aquí cuando volvés al proyecto.</p>
       <div class="home-actions">
         <button class="btn-brass" id="newFichaBtnHome">+ Nueva carta</button>
         <button class="btn-ghost" id="goToCanvasBtn">Ver conexiones</button>
@@ -343,7 +355,7 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
     <div class="home-grid">
       <div class="home-card-preview" id="homePreviewCard">
         <div class="home-overline">Vista rápida</div>
-        <h2>Última carta editada</h2>
+        <h2 id="homePreviewName">Última carta editada</h2>
         <p id="homePreviewText">Creá una ficha y aparecerá aquí una vista previa instantánea.</p>
         <div class="home-card-meta" id="homePreviewMeta"></div>
       </div>
@@ -426,13 +438,14 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
         </div>
         <div class="ws-sheet-columns">
           <div class="ws-sheet-card">
-            <div class="ws-sheet-title">Hechizos</div>
-            <button class="rail-btn" id="openGrimoireBtn" type="button" style="margin-bottom:8px;">📖 Grimorio básico</button>
-            <textarea id="wsSpells" placeholder="Lista de conjuros..."></textarea>
+            <div class="ws-sheet-title">📖 Grimorio</div>
+            <p class="hint" id="spellsCountHint" style="margin-bottom:10px;">Sin hechizos todavía.</p>
+            <button class="rail-btn" id="openGrimoireBtn" type="button">Abrir grimorio</button>
           </div>
           <div class="ws-sheet-card">
-            <div class="ws-sheet-title">Inventario</div>
-            <textarea id="wsInventory" placeholder="Objetos, tesoros, equipo..."></textarea>
+            <div class="ws-sheet-title">🎒 Inventario</div>
+            <p class="hint" id="invCountHint" style="margin-bottom:10px;">Vacío todavía.</p>
+            <button class="rail-btn" id="openInventoryBtn" type="button">Abrir inventario</button>
           </div>
         </div>
       </div>
@@ -457,23 +470,37 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
     <button class="rail-btn" id="newJournalBtn" style="width:100%;">+ Nuevo capítulo</button>
   </aside>
   <div class="fichas-main" style="padding:26px 32px 60px;">
-    <div class="workspace-inline riveted chapter-writing" id="journalEditor" style="display:none;">
-      <div class="ws-header">
-        <div class="chapter-title-row"><span class="chapter-num" id="journalNum"></span></div>
-        <input class="ws-name-input" id="journalTitle" placeholder="Título del capítulo">
-        <div class="ws-meta-row"><input type="date" id="journalDate"></div>
+    <div id="journalOverviewWrap">
+      <div class="fichas-toolbar">
+        <div class="rail-title" style="margin:0;">Tus capítulos</div>
+        <button class="btn-brass" id="journalOverviewNewBtn" type="button" style="margin-left:auto;">+ Nuevo capítulo</button>
       </div>
-      <div class="ws-toolbar" id="journalToolbar">
+      <div id="journalOverviewGrid" class="cards-grid"></div>
+      <div class="empty" id="journalEmpty" style="display:none;"><div class="glyph">📔</div><div class="title">Sin capítulos todavía</div><div class="sub">Creá el primer capítulo de tu diario.</div></div>
+    </div>
+    <div class="workspace-inline riveted chapter-writing" id="journalEditor" style="display:none;">
+      <div class="ws-topbar">
+        <button class="btn-ghost" id="journalBackBtn" type="button">← Volver al diario</button>
+      </div>
+      <div class="ws-header" style="text-align:center;">
+        <div class="chapter-title-row" style="justify-content:center;"><span class="chapter-num" id="journalNum"></span></div>
+        <input class="ws-name-input" id="journalTitle" placeholder="Título del capítulo" style="text-align:center;">
+        <div class="ws-meta-row" style="justify-content:center;"><input type="date" id="journalDate"></div>
+      </div>
+      <div class="ws-toolbar" id="journalToolbar" style="justify-content:center;">
+        <button type="button" class="mini-fmt-btn" data-jfmt="bold"><b>N</b></button>
+        <button type="button" class="mini-fmt-btn" data-jfmt="italic"><i>K</i></button>
+        <button type="button" class="mini-fmt-btn" data-jfmt="underline"><u>S</u></button>
+        <button type="button" class="mini-fmt-btn" data-jfmt="formatBlock:blockquote">❝</button>
         <button id="journalInsertImgBtn" type="button">🖼 Imagen</button>
         <input type="file" id="journalImgFile" accept="image/*" style="display:none">
       </div>
-      <div class="ws-content chapter-content" id="journalContent" contenteditable="true" data-placeholder="Qué pasó hoy en el viaje…" style="margin:0 32px 0;"></div>
+      <div class="ws-content chapter-content" id="journalContent" contenteditable="true" data-placeholder="Qué pasó hoy en el viaje…" style="margin:0 auto; max-width:600px;"></div>
       <div class="ws-actions">
         <button class="btn-delete" id="journalDelete">Eliminar</button>
         <button class="btn-brass" id="journalSave">Guardar capítulo</button>
       </div>
     </div>
-    <div class="empty" id="journalEmpty"><div class="glyph">📔</div><div class="title">Sin capítulos todavía</div><div class="sub">Creá el primer capítulo de tu diario.</div></div>
   </div>
 </section>
 
@@ -560,16 +587,10 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
   <div class="fichas-main" style="padding:26px 32px 60px;">
     <div class="fichas-toolbar">
       <select id="grimoireTargetEntry" style="max-width:220px;"></select>
-      <input class="search-input" id="grimoireBasicSearch" placeholder="Buscar en el grimorio básico (español)…">
+      <input class="search-input" id="grimoireBasicSearch" placeholder="Buscar por nombre, escuela o clase…">
+      <span class="hint" id="grimoireSourceHint"></span>
     </div>
-    <div class="rail-title">Grimorio básico (español, sin conexión)</div>
     <div id="grimoireBasicList" class="cards-grid"></div>
-    <div class="rail-title" style="margin-top:26px;">Catálogo completo — dnd5eapi.co (inglés)</div>
-    <div class="fichas-toolbar">
-      <input class="search-input" id="grimoireApiSearch" placeholder="Buscar hechizo en la API completa…">
-      <button class="btn-ghost" id="grimoireApiSearchBtn" type="button">Buscar</button>
-    </div>
-    <div id="grimoireApiResults"></div>
   </div>
 </section>
 
@@ -585,59 +606,58 @@ const TYPES = {
 const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
 const PROJECT_FILE_NAME_SUFFIX = '_project.json';
 
-const GRIMOIRE = [
- {name:'Prestidigitación', level:0, school:'Transmutación', blurb:'Truco de manos menor: enciende una vela, limpia una mancha, crea un efecto sensorial pequeño.'},
- {name:'Luz', level:0, school:'Evocación', blurb:'Un objeto emite luz brillante en un radio moderado.'},
- {name:'Mano de mago', level:0, school:'Conjuración', blurb:'Crea una mano espectral que manipula objetos livianos a distancia.'},
- {name:'Proyectil de fuego', level:0, school:'Evocación', blurb:'Lanza una chispa de fuego que hace daño a un objetivo.'},
- {name:'Rayo de escarcha', level:0, school:'Evocación', blurb:'Un rayo helado daña y reduce la velocidad del objetivo.'},
- {name:'Descarga eléctrica', level:0, school:'Evocación', blurb:'Toque cargado de electricidad que daña e impide reacciones.'},
- {name:'Orientación', level:0, school:'Adivinación', blurb:'Otorga un pequeño bono a una prueba de habilidad.'},
- {name:'Reparar', level:0, school:'Transmutación', blurb:'Arregla una rotura o daño menor en un objeto.'},
- {name:'Golpe llameante', level:0, school:'Evocación', blurb:'Ataque cuerpo a cuerpo envuelto en llamas.'},
- {name:'Detectar magia', level:1, school:'Adivinación', blurb:'Sientes la presencia de magia cercana y su escuela general.'},
- {name:'Identificar', level:1, school:'Adivinación', blurb:'Revela las propiedades mágicas de un objeto o hechizo activo.'},
- {name:'Escudo', level:1, school:'Abjuración', blurb:'Barrera invisible que aumenta la defensa por un instante.'},
- {name:'Armadura de mago', level:1, school:'Abjuración', blurb:'Una fuerza protectora envuelve al conjurador sin armadura.'},
- {name:'Palabra de curación', level:1, school:'Evocación', blurb:'Cura heridas leves con una sola palabra, a distancia.'},
- {name:'Curar heridas', level:1, school:'Evocación', blurb:'Restaura puntos de golpe con el toque del sanador.'},
- {name:'Misil mágico', level:1, school:'Evocación', blurb:'Dardos de energía que impactan sin posibilidad de fallo.'},
- {name:'Sueño', level:1, school:'Encantamiento', blurb:'Sume a varias criaturas débiles en un sueño mágico.'},
- {name:'Fuego feérico', level:1, school:'Ilusión', blurb:'Cubre objetivos con luz coloreada, revelándolos aunque sean invisibles.'},
- {name:'Salto', level:1, school:'Transmutación', blurb:'Triplica la distancia de salto del objetivo.'},
- {name:'Nube de niebla', level:1, school:'Conjuración', blurb:'Crea una niebla densa que bloquea la visión en un área.'},
- {name:'Invisibilidad', level:2, school:'Ilusión', blurb:'Vuelve invisible al objetivo hasta que ataque o lance un conjuro.'},
- {name:'Telaraña', level:2, school:'Conjuración', blurb:'Llena un área con telarañas pegajosas que atrapan criaturas.'},
- {name:'Sugestión', level:2, school:'Encantamiento', blurb:'Sugiere mágicamente un curso de acción razonable.'},
- {name:'Rayo abrasador', level:2, school:'Evocación', blurb:'Dos rayos de fuego que pueden incendiar objetos inflamables.'},
- {name:'Levitar', level:2, school:'Transmutación', blurb:'Hace flotar a una criatura u objeto en el aire.'},
- {name:'Silencio', level:2, school:'Ilusión', blurb:'Crea una zona donde no se puede producir sonido.'},
- {name:'Restablecimiento menor', level:2, school:'Abjuración', blurb:'Cura una enfermedad o elimina una condición debilitante.'},
- {name:'Rayo de relámpago', level:3, school:'Evocación', blurb:'Una línea de electricidad que daña a todos en su trayectoria.'},
- {name:'Bola de fuego', level:3, school:'Evocación', blurb:'Explosión ardiente que daña a todos en un área amplia.'},
- {name:'Contrahechizo', level:3, school:'Abjuración', blurb:'Interrumpe el conjuro que otra criatura está lanzando.'},
- {name:'Volar', level:3, school:'Transmutación', blurb:'Otorga velocidad de vuelo al objetivo durante varios minutos.'},
- {name:'Lentitud', level:3, school:'Transmutación', blurb:'Ralentiza drásticamente a varios enemigos en un área.'},
- {name:'Disipar magia', level:3, school:'Abjuración', blurb:'Termina un efecto mágico activo en un objetivo.'},
- {name:'Clarividencia', level:3, school:'Adivinación', blurb:'Crea un sensor invisible que ve y oye un lugar distante.'},
- {name:'Puerta dimensional', level:4, school:'Conjuración', blurb:'Teletransporta instantáneamente al conjurador a un punto visible.'},
- {name:'Polimorfar', level:4, school:'Transmutación', blurb:'Transforma a una criatura en otra forma, alterando sus estadísticas.'},
- {name:'Muro de fuego', level:4, school:'Evocación', blurb:'Erige un muro ardiente que daña a quien lo cruza.'},
- {name:'Piel de piedra', level:4, school:'Abjuración', blurb:'Resistencia casi total al daño físico durante un tiempo.'},
- {name:'Confusión', level:4, school:'Encantamiento', blurb:'Vuelve errático el comportamiento de varias criaturas.'},
- {name:'Muro de fuerza', level:5, school:'Evocación', blurb:'Barrera invisible e indestructible que nada puede atravesar.'},
- {name:'Telepatía', level:5, school:'Evocación', blurb:'Comunicación mental a gran distancia con una criatura conocida.'},
- {name:'Curación en masa', level:5, school:'Evocación', blurb:'Restaura puntos de golpe a varias criaturas a la vez.'},
- {name:'Restauración mayor', level:5, school:'Abjuración', blurb:'Revierte maldiciones, transformaciones o pérdida de habilidad.'},
- {name:'Sol vengativo', level:6, school:'Evocación', blurb:'Crea un pequeño sol que daña con su luz radiante.'},
- {name:'Muro de hielo', level:6, school:'Evocación', blurb:'Erige una muralla helada que bloquea el paso.'},
- {name:'Contingencia', level:6, school:'Evocación', blurb:'Prepara un conjuro que se activa automáticamente ante una condición.'},
- {name:'Portal etéreo', level:7, school:'Conjuración', blurb:'Permite viajar entre el plano material y el plano etéreo.'},
- {name:'Simulacro', level:7, school:'Ilusión', blurb:'Crea una copia ilusoria pero funcional de una criatura conocida.'},
- {name:'Enjambre de meteoros', level:9, school:'Evocación', blurb:'Bólidos de fuego caen del cielo devastando un área enorme.'},
- {name:'Deseo', level:9, school:'Conjuración', blurb:'El conjuro más poderoso: altera la realidad según se desee.'},
- {name:'Portal', level:9, school:'Conjuración', blurb:'Abre un portal circular entre dos ubicaciones distantes o planos.'},
- {name:'Verdadera resurrección', level:9, school:'Necromancia', blurb:'Devuelve la vida a un fallecido, aunque el cuerpo ya no exista.'},
+/* Grimorio: se carga desde all.json (361 hechizos SRD 5E en español, con nombre/nivel/escuela/
+   clases/descripción/alcance/duración/tiempo de lanzamiento). Si ese archivo no está disponible
+   en el mismo directorio, se usa este pequeño respaldo offline. */
+const GRIMOIRE_FALLBACK = [
+ {nombre:'Prestidigitación', nivel:0, escuela:'Transmutación', clases:['Bardo','Hechicero','Brujo','Mago'], descripcion:['Truco de manos menor: enciende una vela, limpia una mancha, crea un efecto sensorial pequeño.']},
+ {nombre:'Luz', nivel:0, escuela:'Evocación', clases:['Clérigo','Mago'], descripcion:['Un objeto emite luz brillante en un radio moderado.']},
+ {nombre:'Proyectil de fuego', nivel:0, escuela:'Evocación', clases:['Hechicero','Mago'], descripcion:['Lanza una chispa de fuego que hace daño a un objetivo.']},
+ {nombre:'Misil mágico', nivel:1, escuela:'Evocación', clases:['Hechicero','Mago'], descripcion:['Dardos de energía que impactan sin posibilidad de fallo.']},
+ {nombre:'Curar heridas', nivel:1, escuela:'Evocación', clases:['Bardo','Clérigo','Druida','Paladín'], descripcion:['Restaura puntos de golpe con el toque del sanador.']},
+ {nombre:'Escudo', nivel:1, escuela:'Abjuración', clases:['Hechicero','Mago'], descripcion:['Barrera invisible que aumenta la defensa por un instante.']},
+ {nombre:'Bola de fuego', nivel:3, escuela:'Evocación', clases:['Hechicero','Mago'], descripcion:['Explosión ardiente que daña a todos en un área amplia.']},
+ {nombre:'Disipar magia', nivel:3, escuela:'Abjuración', clases:['Bardo','Clérigo','Druida','Hechicero','Paladín','Mago'], descripcion:['Termina un efecto mágico activo en un objetivo.']},
+];
+let spellsDB = [];
+let spellsDBLoaded = false;
+async function loadSpellsDB(){
+  try{
+    const res = await fetch('./all.json');
+    if(!res.ok) throw new Error('no all.json');
+    const data = await res.json();
+    spellsDB = Array.isArray(data) ? data : GRIMOIRE_FALLBACK;
+  }catch(e){
+    spellsDB = GRIMOIRE_FALLBACK;
+  }
+  spellsDBLoaded = true;
+}
+
+/* Bases de datos livianas de armas/armaduras SRD para el inventario estructurado.
+   Si el usuario busca algo que no está acá, puede cargarlo manualmente. */
+const WEAPONS_DB = [
+ {nombre:'Daga', dano:'1d4', tipoDano:'Perforante', precio:'2 po', peso:'1 lb'},
+ {nombre:'Espada corta', dano:'1d6', tipoDano:'Perforante', precio:'10 po', peso:'2 lb'},
+ {nombre:'Espada larga', dano:'1d8', tipoDano:'Cortante', precio:'15 po', peso:'3 lb'},
+ {nombre:'Mandoble', dano:'2d6', tipoDano:'Cortante', precio:'50 po', peso:'6 lb'},
+ {nombre:'Hacha de mano', dano:'1d6', tipoDano:'Cortante', precio:'5 po', peso:'2 lb'},
+ {nombre:'Hacha de batalla', dano:'1d8', tipoDano:'Cortante', precio:'10 po', peso:'4 lb'},
+ {nombre:'Maza', dano:'1d6', tipoDano:'Contundente', precio:'5 po', peso:'4 lb'},
+ {nombre:'Martillo de guerra', dano:'1d8', tipoDano:'Contundente', precio:'15 po', peso:'2 lb'},
+ {nombre:'Lanza', dano:'1d6', tipoDano:'Perforante', precio:'1 po', peso:'3 lb'},
+ {nombre:'Arco corto', dano:'1d6', tipoDano:'Perforante', precio:'25 po', peso:'2 lb'},
+ {nombre:'Arco largo', dano:'1d8', tipoDano:'Perforante', precio:'50 po', peso:'2 lb'},
+ {nombre:'Ballesta ligera', dano:'1d8', tipoDano:'Perforante', precio:'25 po', peso:'5 lb'},
+ {nombre:'Bastón', dano:'1d6', tipoDano:'Contundente', precio:'2 po', peso:'4 lb'},
+];
+const ARMORS_DB = [
+ {nombre:'Armadura acolchada', ca:'11 + Des', peso:'8 lb', precio:'5 po'},
+ {nombre:'Armadura de cuero', ca:'11 + Des', peso:'10 lb', precio:'10 po'},
+ {nombre:'Cuero tachonado', ca:'12 + Des', peso:'13 lb', precio:'45 po'},
+ {nombre:'Cota de escamas', ca:'14 + Des (máx 2)', peso:'45 lb', precio:'50 po'},
+ {nombre:'Cota de malla', ca:'16', peso:'55 lb', precio:'75 po'},
+ {nombre:'Armadura de placas', ca:'18', peso:'65 lb', precio:'1500 po'},
+ {nombre:'Escudo', ca:'+2', peso:'6 lb', precio:'10 po'},
 ];
 
 /* ========================= STATE ========================= */
@@ -648,6 +668,8 @@ let activeType = 'all';
 let searchTerm = '';
 let currentEntryId = null;
 let currentBlocks = [];
+let currentSpellsList = [];
+let currentInventoryData = { weapons:[], armors:[], other:'' };
 let fichasMode = 'grid';
 let selectMode = false;
 let selectedIds = new Set();
@@ -901,12 +923,18 @@ document.getElementById('settingsBtn').addEventListener('click', openSettings);
 document.getElementById('folderBtn').addEventListener('click', connectFolder);
 
 /* ========================= NAV ========================= */
-document.getElementById('navMenuBtn').addEventListener('click', (e)=>{ e.stopPropagation(); document.getElementById('navMenu').classList.toggle('open'); });
-document.addEventListener('click', ()=> document.getElementById('navMenu').classList.remove('open'));
+function toggleNavDrawer(open){
+  const isOpen = open !== undefined ? open : !document.getElementById('navMenu').classList.contains('open');
+  document.getElementById('navMenu').classList.toggle('open', isOpen);
+  document.getElementById('navDrawerOverlay').classList.toggle('open', isOpen);
+  document.getElementById('navEdgeBtn').classList.toggle('open', isOpen);
+}
+document.getElementById('navEdgeBtn').addEventListener('click', ()=> toggleNavDrawer());
+document.getElementById('navDrawerOverlay').addEventListener('click', ()=> toggleNavDrawer(false));
 document.querySelectorAll('#navMenu button').forEach(btn=>{
   btn.addEventListener('click', async (e)=>{
     e.stopPropagation();
-    document.getElementById('navMenu').classList.remove('open');
+    toggleNavDrawer(false);
     await navigateTo(btn.dataset.view);
     document.querySelectorAll('#navMenu button').forEach(b=>b.classList.toggle('active', b===btn));
   });
@@ -943,6 +971,7 @@ async function renderHomeDashboard(){
     recentList.innerHTML = '<div class="home-recent-item"><span>No hay fichas aún.</span></div>';
   } else {
     const latest = entriesIndex.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0))[0];
+    document.getElementById('homePreviewName').textContent = latest.name || 'Sin nombre';
     previewText.textContent = latest.summary || 'Seleccioná una ficha para ver sus detalles.';
     const typeLabel = TYPES[latest.type] ? `${TYPES[latest.type].glyph} ${TYPES[latest.type].label}` : 'Ficha';
     const folderName = latest.folderId ? (worldMeta.folders.find(f=>f.id===latest.folderId)?.name || 'Carpeta') : 'Sin carpeta';
@@ -1048,14 +1077,68 @@ async function loadWorld(){
 
   renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard();
   renderWsFolderOptions(null);
+  updateHomeGreeting();
 
   if(!metaExisted && entriesIndex.length === 0 && !dirHandle){
-    openModal({
-      title:'¡Bienvenido a tu Códice!', fields:[], submitLabel:'Conectar carpeta', showDelete:true, deleteLabel:'Empezar de cero',
-      message:'¿Querés conectar una carpeta con un proyecto existente, o empezar de cero acá mismo?',
-      onSubmit: connectFolder, onDelete: ()=>{}
-    });
+    showWelcomeFlow();
+  } else if(!worldMeta.userName){
+    askForName();
   }
+}
+function updateHomeGreeting(){
+  const name = worldMeta.userName;
+  const title = document.getElementById('homeGreetingTitle');
+  const text = document.getElementById('homeGreetingText');
+  const overline = document.getElementById('homeOverline');
+  if(name){
+    overline.textContent = 'TU LABORATORIO';
+    title.textContent = `Bienvenido de vuelta, ${name}.`;
+    text.textContent = `¿Qué ideas tenés para hoy, ${name}? Tus cartas, mapas y capítulos te esperan donde los dejaste.`;
+  } else {
+    overline.textContent = 'TU LABORATORIO';
+    title.textContent = 'Escribe, conecta y explora tu mundo.';
+    text.textContent = 'Tus cartas aparecen aquí cuando volvés al proyecto.';
+  }
+}
+function askForName(){
+  openModal({
+    title:'¿Cómo te llamamos?', fields:[{ key:'name', label:'Tu nombre', placeholder:'ej: Jere' }], submitLabel:'Guardar',
+    message:'Así el Códice te saluda cada vez que vuelvas.',
+    onSubmit: async (v)=>{
+      worldMeta.userName = v.name.trim() || null;
+      await storeSet('world-meta', worldMeta); markDirty();
+      updateHomeGreeting();
+    }
+  });
+}
+function showWelcomeFlow(){
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  box.style.width = 'min(520px,92vw)';
+  box.innerHTML = `
+    <div class="modal-title">¡Bienvenido/a a Códice!</div>
+    <div class="modal-message">
+      Tu taller de worldbuilding: fichas, mapas, un lienzo de relaciones, diario y bitácora de sesiones — todo guardado localmente en tu navegador.
+      <br><br><strong>Para no perder tus datos:</strong> usá el botón <strong>Exportar</strong> (arriba a la derecha) cada tanto para bajar una copia, o conectá una carpeta local — si esa carpeta está dentro de Google Drive, Dropbox o OneDrive, quedará sincronizada entre tus computadoras. El navegador puede borrar datos locales si limpiás su caché, así que exportar de vez en cuando es tu red de seguridad.
+    </div>
+    <div class="modal-fields"><div class="field"><label>¿Cómo te llamamos?</label><input type="text" id="mf-welcomeName" placeholder="ej: Jere"></div></div>
+    <div class="modal-actions">
+      <div><button class="btn-ghost" id="welcomeConnectFolder" type="button">📁 Conectar carpeta existente</button></div>
+      <div><button class="btn-brass" id="welcomeStart" type="button">Empezar</button></div>
+    </div>`;
+  overlay.classList.add('open');
+  document.getElementById('welcomeConnectFolder').onclick = async ()=>{
+    const name = document.getElementById('mf-welcomeName').value.trim();
+    if(name){ worldMeta.userName = name; await storeSet('world-meta', worldMeta); }
+    closeModal(); await connectFolder(); updateHomeGreeting();
+  };
+  document.getElementById('welcomeStart').onclick = async ()=>{
+    const name = document.getElementById('mf-welcomeName').value.trim();
+    worldMeta.userName = name || null;
+    await storeSet('world-meta', worldMeta); markDirty();
+    closeModal(); updateHomeGreeting();
+  };
+  setTimeout(()=>document.getElementById('mf-welcomeName').focus(), 30);
 }
 document.getElementById('worldName').addEventListener('change', async (e)=>{
   worldMeta.worldName = e.target.value.trim() || 'Mundo sin nombre';
@@ -1088,7 +1171,10 @@ function renderFolderList(){
   el.querySelectorAll('.rail-item').forEach(item=>{
     item.addEventListener('click', (e)=>{
       if(e.target.closest('[data-del-folder]')) return;
-      activeFolder = item.dataset.folder; renderFolderList(); renderFichasGrid();
+      const applyFilter = ()=>{ activeFolder = item.dataset.folder; setFichasMode('grid'); renderFolderList(); renderFichasGrid(); };
+      if(fichasMode==='editor' && wsDirty){
+        openUnsavedGuard(document.getElementById('wsName').value, async ()=>{ await saveCurrentWorkspace(); applyFilter(); }, ()=>{ wsDirty=false; applyFilter(); });
+      } else { applyFilter(); }
     });
   });
   el.querySelectorAll('[data-del-folder]').forEach(btn=>{
@@ -1124,7 +1210,12 @@ function renderTypeFilterList(){
   });
   el.innerHTML = html;
   el.querySelectorAll('.rail-item').forEach(item=>{
-    item.addEventListener('click', ()=>{ activeType = item.dataset.type; renderTypeFilterList(); renderFichasGrid(); });
+    item.addEventListener('click', ()=>{
+      const applyFilter = ()=>{ activeType = item.dataset.type; setFichasMode('grid'); renderTypeFilterList(); renderFichasGrid(); };
+      if(fichasMode==='editor' && wsDirty){
+        openUnsavedGuard(document.getElementById('wsName').value, async ()=>{ await saveCurrentWorkspace(); applyFilter(); }, ()=>{ wsDirty=false; applyFilter(); });
+      } else { applyFilter(); }
+    });
   });
 }
 
@@ -1254,7 +1345,8 @@ document.getElementById('bulkPrintBtn').addEventListener('click', async ()=>{
 /* ========================= WORKSPACE (Fichas, unificado) ========================= */
 function defaultEntry(){
   return { name:'', type:'personaje', folderId:null, tags:[], summary:'', blocks:[], coverImage:null, coverThumb:null,
-    coverPosition:{x:50,y:50}, coverZoom:1, enable5eSheet:false, stats:{}, spells:'', inventory:'' };
+    coverPosition:{x:50,y:50}, coverZoom:1, enable5eSheet:false, stats:{},
+    spellsList:[], inventoryData:{ weapons:[], armors:[], other:'' } };
 }
 function renderWsTypeOptions(selected){
   document.getElementById('wsType').innerHTML = Object.keys(TYPES).map(k=>`<option value="${k}" ${k===selected?'selected':''}>${TYPES[k].glyph} ${TYPES[k].label}</option>`).join('');
@@ -1351,6 +1443,12 @@ async function loadEntryIntoWorkspace(id){
     if(!loaded?.blocks && loaded?.content){ full.blocks = [{ id: uid(), title:'Notas', html: loaded.content }]; }
   }
   currentBlocks = (full.blocks||[]).map(b=>({...b}));
+  currentSpellsList = (full.spellsList||[]).map(s=>({...s}));
+  if((!full.spellsList || full.spellsList.length===0) && full.spells){
+    currentSpellsList = [{ id: uid(), nombre:'(Notas heredadas)', nivel:0, escuela:'', descripcion:[full.spells] }];
+  }
+  currentInventoryData = full.inventoryData ? JSON.parse(JSON.stringify(full.inventoryData)) : { weapons:[], armors:[], other:'' };
+  if(!full.inventoryData && full.inventory){ currentInventoryData.other = full.inventory; }
   wsCoverData = full.coverImage || null;
   wsCoverPos = full.coverPosition || { x:50, y:50 };
   wsCoverZoom = full.coverZoom || 1;
@@ -1370,8 +1468,7 @@ async function loadEntryIntoWorkspace(id){
   document.getElementById('wsAC').value = full.stats?.AC || '';
   document.getElementById('wsSpeed').value = full.stats?.Speed || '';
   document.getElementById('wsProf').value = full.stats?.Prof || '';
-  document.getElementById('wsSpells').value = full.spells || '';
-  document.getElementById('wsInventory').value = full.inventory || '';
+  updateSpellsInvHints();
   document.getElementById('wsCoverZoomInput').value = wsCoverZoom;
   applyCoverStyle();
   document.getElementById('wsDelete').style.display = id ? 'inline-block' : 'none';
@@ -1381,7 +1478,7 @@ async function loadEntryIntoWorkspace(id){
   document.getElementById('wsDirtyHint').textContent = '';
 }
 function markWsDirty(){ wsDirty = true; document.getElementById('wsDirtyHint').textContent = '● cambios sin guardar'; }
-['wsName','wsTags','wsSummary','wsSTR','wsDEX','wsCON','wsINT','wsWIS','wsCHA','wsHP','wsAC','wsSpeed','wsProf','wsSpells','wsInventory'].forEach(id=>{
+['wsName','wsTags','wsSummary','wsSTR','wsDEX','wsCON','wsINT','wsWIS','wsCHA','wsHP','wsAC','wsSpeed','wsProf'].forEach(id=>{
   document.getElementById(id).addEventListener('input', markWsDirty);
 });
 document.getElementById('wsType').addEventListener('change', ()=>{ markWsDirty(); update5EVisibility(); });
@@ -1424,11 +1521,9 @@ async function saveCurrentWorkspace(){
     INT: document.getElementById('wsINT').value, WIS: document.getElementById('wsWIS').value, CHA: document.getElementById('wsCHA').value,
     HP: document.getElementById('wsHP').value, AC: document.getElementById('wsAC').value, Speed: document.getElementById('wsSpeed').value, Prof: document.getElementById('wsProf').value
   };
-  const spells = document.getElementById('wsSpells').value.trim();
-  const inventory = document.getElementById('wsInventory').value.trim();
   const id = currentEntryId || uid();
   const now = Date.now();
-  const full = { id, name, type, folderId, tags, summary, blocks: currentBlocks, stats, spells, inventory, enable5eSheet: wsEnable5E,
+  const full = { id, name, type, folderId, tags, summary, blocks: currentBlocks, stats, spellsList: currentSpellsList, inventoryData: currentInventoryData, enable5eSheet: wsEnable5E,
     coverImage: wsCoverData, coverThumb: wsCoverData, coverPosition: wsCoverPos, coverZoom: wsCoverZoom, updatedAt: now, createdAt: currentEntryId ? undefined : now };
   const prevIdx = entriesIndex.findIndex(e=>e.id===id);
   if(prevIdx>-1 && full.createdAt===undefined) full.createdAt = entriesIndex[prevIdx].createdAt || now;
@@ -1922,18 +2017,45 @@ function renderRegions(){
 }
 
 /* ========================= DIARIO (capítulos) ========================= */
+let journalMode = 'overview';
+function setJournalMode(mode){
+  journalMode = mode;
+  document.getElementById('journalOverviewWrap').style.display = mode==='overview' ? 'block' : 'none';
+  document.getElementById('journalEditor').style.display = mode==='editor' ? 'block' : 'none';
+}
+function journalPreviewText(html){
+  const div = document.createElement('div'); div.innerHTML = html || '';
+  return (div.textContent || '').trim();
+}
+function renderJournalOverview(){
+  const sorted = journalEntries.slice().sort((a,b)=> (a.order||0)-(b.order||0));
+  const grid = document.getElementById('journalOverviewGrid');
+  const empty = document.getElementById('journalEmpty');
+  if(sorted.length === 0){ grid.innerHTML=''; empty.style.display='flex'; return; }
+  empty.style.display = 'none';
+  grid.innerHTML = sorted.map((j,idx)=>`
+    <div class="ficha-card" data-id="${j.id}" style="--type-color:var(--verdigris);">
+      <div class="ficha-body">
+        <div class="ficha-type">📔 Capítulo ${idx+1}${j.date? ' · '+escapeHtml(j.date):''}</div>
+        <div class="ficha-name">${escapeHtml(j.title||'Sin título')}</div>
+        <div class="ficha-summary" data-summary>${escapeHtml(journalPreviewText(j.content).slice(0,160))}</div>
+      </div>
+    </div>`).join('');
+  grid.querySelectorAll('.ficha-card').forEach(card=> card.addEventListener('click', ()=> loadJournalEntry(card.dataset.id)));
+  autoFitSummaries();
+}
 function renderJournalList(){
   const el = document.getElementById('journalList');
   const sorted = journalEntries.slice().sort((a,b)=> (a.order||0)-(b.order||0));
   el.innerHTML = sorted.map((j,idx)=>`<div class="rail-item ${currentJournalId===j.id?'active':''}" data-id="${j.id}"><span>Cap. ${idx+1} — ${escapeHtml(j.title||'Sin título')}</span></div>`).join('') || '<div class="hint" style="margin:8px 0;">Sin capítulos.</div>';
   el.querySelectorAll('.rail-item').forEach(item=> item.addEventListener('click', ()=> loadJournalEntry(item.dataset.id)));
+  renderJournalOverview();
 }
 function loadJournalEntry(id){
   currentJournalId = id;
+  setJournalMode('editor');
   const sorted = journalEntries.slice().sort((a,b)=> (a.order||0)-(b.order||0));
   const j = journalEntries.find(x=>x.id===id);
-  document.getElementById('journalEmpty').style.display = j ? 'none' : 'flex';
-  document.getElementById('journalEditor').style.display = j ? 'block' : 'none';
   if(j){
     const idx = sorted.findIndex(x=>x.id===id);
     document.getElementById('journalNum').textContent = 'Capítulo ' + (idx+1);
@@ -1943,13 +2065,23 @@ function loadJournalEntry(id){
   }
   renderJournalList();
 }
-document.getElementById('newJournalBtn').addEventListener('click', async ()=>{
+async function newJournalChapter(){
   const j = { id:uid(), title:'', date: new Date().toISOString().slice(0,10), content:'', order: journalEntries.length };
   journalEntries.push(j); await storeSet('journal-entries', journalEntries); markDirty();
   loadJournalEntry(j.id);
-});
+}
+document.getElementById('newJournalBtn').addEventListener('click', newJournalChapter);
+document.getElementById('journalOverviewNewBtn').addEventListener('click', newJournalChapter);
+document.getElementById('journalBackBtn').addEventListener('click', ()=>{ currentJournalId=null; setJournalMode('overview'); renderJournalList(); });
 document.getElementById('journalTitle').addEventListener('keydown', (e)=>{
   if(e.key==='Enter'){ e.preventDefault(); document.getElementById('journalContent').focus(); }
+});
+document.querySelectorAll('#journalToolbar [data-jfmt]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.getElementById('journalContent').focus();
+    const [cmd, arg] = btn.dataset.jfmt.split(':');
+    document.execCommand(cmd, false, arg||null);
+  });
 });
 document.getElementById('journalInsertImgBtn').addEventListener('click', ()=> document.getElementById('journalImgFile').click());
 document.getElementById('journalImgFile').addEventListener('change', async (e)=>{
