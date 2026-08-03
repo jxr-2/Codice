@@ -437,11 +437,14 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
           <div class="ws-stat ws-short"><label>Prof.</label><input id="wsProf" type="text"></div>
         </div>
         <div class="ws-sheet-columns">
-          <div class="ws-sheet-card">
-            <div class="ws-sheet-title">📖 Grimorio</div>
-            <p class="hint" id="spellsCountHint" style="margin-bottom:10px;">Sin hechizos todavía.</p>
-            <button class="rail-btn" id="openGrimoireBtn" type="button">Abrir grimorio</button>
+          <div class="ws-sheet-card" id="wsGrimoireCard">
+            <div class="ws-sheet-title">📜 Grimorio (añadir)</div>
+            <input class="search-input" id="wsGrimoireSearch" placeholder="Buscar hechizo en el grimorio…" style="margin-bottom:8px;">
+            <div id="wsGrimoireResults" style="max-height:220px; overflow:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:8px;"></div>
+            <div class="ws-section-title" style="margin:6px 0 8px;">Hechizos de esta ficha</div>
+            <div id="wsGrimoireAdded" style="max-height:160px; overflow:auto; display:flex; flex-direction:column; gap:6px;"></div>
           </div>
+
           <div class="ws-sheet-card">
             <div class="ws-sheet-title">🎒 Inventario</div>
             <p class="hint" id="invCountHint" style="margin-bottom:10px;">Vacío todavía.</p>
@@ -621,6 +624,7 @@ const GRIMOIRE_FALLBACK = [
 ];
 let spellsDB = [];
 let spellsDBLoaded = false;
+let GRIMOIRE = [];
 async function loadSpellsDB(){
   try{
     const res = await fetch('./all.json');
@@ -630,6 +634,15 @@ async function loadSpellsDB(){
   }catch(e){
     spellsDB = GRIMOIRE_FALLBACK;
   }
+  // Normalizar a la forma que usa la UI: { name, level, school, classes, blurb }
+  GRIMOIRE = spellsDB.map(s => {
+    const name = s.name || s.nombre || s.nombre_es || '';
+    const level = s.level || s.nivel || 0;
+    const school = (s.school && (typeof s.school === 'string' ? s.school : s.school.name)) || s.escuela || '';
+    const classes = s.classes || s.clases || (Array.isArray(s.clases) ? s.clases : []) || (s.clases ? [s.clases] : []) || [];
+    const blurb = (s.desc && (Array.isArray(s.desc) ? s.desc.join(' ') : s.desc)) || (Array.isArray(s.descripcion) ? s.descripcion.join(' ') : s.descripcion) || s.blurb || '';
+    return { name, level, school, classes, blurb };
+  });
   spellsDBLoaded = true;
 }
 
@@ -928,6 +941,9 @@ function toggleNavDrawer(open){
   document.getElementById('navMenu').classList.toggle('open', isOpen);
   document.getElementById('navDrawerOverlay').classList.toggle('open', isOpen);
   document.getElementById('navEdgeBtn').classList.toggle('open', isOpen);
+  // Ajustar símbolo para evitar rotaciones inesperadas en algunos navegadores
+  const edgeBtn = document.getElementById('navEdgeBtn');
+  if(edgeBtn) edgeBtn.textContent = isOpen ? '◂' : '▸';
 }
 document.getElementById('navEdgeBtn').addEventListener('click', ()=> toggleNavDrawer());
 document.getElementById('navDrawerOverlay').addEventListener('click', ()=> toggleNavDrawer(false));
@@ -1439,8 +1455,26 @@ async function loadEntryIntoWorkspace(id){
   let full = defaultEntry();
   if(id){
     const loaded = await storeGet('entry:'+id);
-    if(loaded) full = Object.assign(defaultEntry(), loaded);
-    if(!loaded?.blocks && loaded?.content){ full.blocks = [{ id: uid(), title:'Notas', html: loaded.content }]; }
+    if(loaded){
+      full = Object.assign(defaultEntry(), loaded);
+      if(!loaded.blocks && loaded.content){ full.blocks = [{ id: uid(), title:'Notas', html: loaded.content }]; }
+    } else {
+      // Si no existe la ficha completa en storage, usar la entrada ligera del índice para mostrar algo
+      const light = entriesIndex.find(e=>e.id===id);
+      if(light){
+        full = Object.assign(defaultEntry(), {
+          id: light.id,
+          name: light.name || '',
+          type: light.type || 'personaje',
+          folderId: light.folderId || null,
+          tags: light.tags || [],
+          summary: light.summary || '',
+          coverImage: light.coverThumb || null,
+          coverPosition: light.coverPosition || { x:50, y:50 },
+          coverZoom: light.coverZoom || 1
+        });
+      }
+    }
   }
   currentBlocks = (full.blocks||[]).map(b=>({...b}));
   currentSpellsList = (full.spellsList||[]).map(s=>({...s}));
@@ -1449,10 +1483,10 @@ async function loadEntryIntoWorkspace(id){
   }
   currentInventoryData = full.inventoryData ? JSON.parse(JSON.stringify(full.inventoryData)) : { weapons:[], armors:[], other:'' };
   if(!full.inventoryData && full.inventory){ currentInventoryData.other = full.inventory; }
-  wsCoverData = full.coverImage || null;
+  wsCoverData = full.coverImage || full.coverThumb || null;
   wsCoverPos = full.coverPosition || { x:50, y:50 };
   wsCoverZoom = full.coverZoom || 1;
-  wsEnable5E = full.enable5eSheet || false;
+  wsEnable5E = full.enable5eSheet || full.enable5E || full.enable5 || false;
   renderWsTypeOptions(full.type);
   renderWsFolderOptions(full.folderId);
   document.getElementById('wsName').value = full.name || '';
@@ -1474,6 +1508,8 @@ async function loadEntryIntoWorkspace(id){
   document.getElementById('wsDelete').style.display = id ? 'inline-block' : 'none';
   update5EVisibility();
   renderBlocks();
+  // Render mini-grimorio dentro del editor (si existe)
+  try{ renderWsGrimoirePanel(); }catch(e){}
   wsDirty = false;
   document.getElementById('wsDirtyHint').textContent = '';
 }
@@ -1597,10 +1633,18 @@ document.getElementById('openGrimoireBtn').addEventListener('click', ()=>{
   const box = document.getElementById('modalBox');
   box.style.width = 'min(520px,92vw)';
   const renderList = (q='') => {
-    const filtered = GRIMOIRE.filter(s => !q || s.name.toLowerCase().includes(q.toLowerCase()));
+    const qq = (q||'').toLowerCase();
+    const filtered = GRIMOIRE.filter(s => {
+      if(!qq) return true;
+      if((s.name||'').toLowerCase().includes(qq)) return true;
+      if((s.school||'').toLowerCase().includes(qq)) return true;
+      if(Array.isArray(s.classes) && s.classes.join(' ').toLowerCase().includes(qq)) return true;
+      if((s.blurb||'').toLowerCase().includes(qq)) return true;
+      return false;
+    });
     return filtered.slice(0,60).map(s=>`
       <div class="grimoire-row">
-        <div><strong>${escapeHtml(s.name)}</strong><br><span class="hint">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)}</span></div>
+        <div><strong>${escapeHtml(s.name)}</strong><br><span class="hint">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)} ${s.classes && s.classes.length? '· '+escapeHtml(s.classes.join(', ')) : ''}</span></div>
         <button class="rail-btn" data-add="${escapeHtml(s.name)}" type="button">+ Agregar</button>
       </div>`).join('') || '<div class="hint" style="margin:10px 0;">Sin resultados.</div>';
   };
@@ -1613,11 +1657,17 @@ document.getElementById('openGrimoireBtn').addEventListener('click', ()=>{
   document.getElementById('modalCancel').onclick = closeModal;
   const wire = ()=>{
     document.querySelectorAll('#grimoireResults [data-add]').forEach(btn=>{
-      btn.addEventListener('click', ()=>{
+      btn.addEventListener('click', async ()=>{
         const spell = GRIMOIRE.find(s=>s.name===btn.dataset.add);
-        const ta = document.getElementById('wsSpells');
+        if(!spell) return;
         const line = `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`;
-        ta.value = ta.value ? ta.value + '\n' + line : line;
+        // Si estamos editando una ficha abierta, agregar directo a esa ficha
+        if(currentEntryId && fichasMode==='editor'){
+          await addSpellLineToEntry(currentEntryId, line);
+        } else {
+          const ta = document.getElementById('wsSpells');
+          if(ta){ ta.value = ta.value ? ta.value + '\n' + line : line; markWsDirty(); }
+        }
         markWsDirty(); btn.textContent = 'Agregado ✓'; btn.disabled = true;
       });
     });
@@ -1637,14 +1687,17 @@ function buildPrintHtml(entries){
     .entry-block h3{ font-size:15px; color:#7d5f2c; margin-bottom:4px; }
     .page-break{ page-break-after: always; margin-bottom:40px; border-bottom:1px dashed #ccc; padding-bottom:30px; }
   </style></head><body>
-  ${entries.map(full=>`
+  ${entries.map(full=>{
+    const blocks = (full.blocks && full.blocks.length) ? full.blocks : (full.content ? [{ title:'', html: full.content }] : []);
+    return `
     <div class="page-break">
       ${full.coverImage?`<img class="cover" src="${full.coverImage}">`:''}
       <h1>${escapeHtml(full.name)}</h1>
       <div class="meta">${escapeHtml(TYPES[full.type]?.label||'')} ${full.tags?.length?'· '+escapeHtml(full.tags.join(', ')):''}</div>
       ${full.summary?`<p class="summary">${escapeHtml(full.summary)}</p>`:''}
-      ${(full.blocks||[]).map(b=>`<div class="entry-block"><h3>${escapeHtml(b.title)}</h3><div>${b.html||''}</div></div>`).join('')}
-    </div>`).join('')}
+      ${blocks.map(b=>`<div class="entry-block"><h3>${escapeHtml(b.title||'')}</h3><div>${b.html||''}</div></div>`).join('')}
+    </div>`;
+  }).join('')}
   </body></html>`;
 }
 function printEntry(){
@@ -2172,7 +2225,15 @@ function refreshGrimoireTargetSelect(){
 }
 function renderGrimoireBasicList(q=''){
   const el = document.getElementById('grimoireBasicList');
-  const filtered = GRIMOIRE.filter(s=> !q || s.name.toLowerCase().includes(q.toLowerCase()));
+  const qq = (q||'').toLowerCase();
+  const filtered = GRIMOIRE.filter(s=>{
+    if(!qq) return true;
+    if((s.name||'').toLowerCase().includes(qq)) return true;
+    if((s.school||'').toLowerCase().includes(qq)) return true;
+    if(Array.isArray(s.classes) && s.classes.join(' ').toLowerCase().includes(qq)) return true;
+    if((s.blurb||'').toLowerCase().includes(qq)) return true;
+    return false;
+  });
   el.innerHTML = filtered.map(s=>`
     <div class="ficha-card" style="cursor:default;">
       <div class="ficha-body">
@@ -2184,13 +2245,67 @@ function renderGrimoireBasicList(q=''){
     </div>`).join('');
   el.querySelectorAll('[data-add-basic]').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      const targetId = document.getElementById('grimoireTargetEntry').value;
-      if(!targetId){ return; }
       const spell = GRIMOIRE.find(s=>s.name===btn.dataset.addBasic);
-      await addSpellLineToEntry(targetId, `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`);
+      if(!spell) return;
+      const line = `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`;
+      let targetId = null;
+      if(currentEntryId && fichasMode==='editor') targetId = currentEntryId;
+      else targetId = document.getElementById('grimoireTargetEntry').value;
+      if(!targetId){ btn.textContent = 'Elegí un personaje'; return; }
+      await addSpellLineToEntry(targetId, line);
       btn.textContent = 'Agregado ✓';
     });
   });
+}
+
+// Mini-grimorio dentro del editor: búsqueda y lista de hechizos de la ficha actual
+function renderWsGrimoirePanel(){
+  const resultsEl = document.getElementById('wsGrimoireResults');
+  const addedEl = document.getElementById('wsGrimoireAdded');
+  const searchEl = document.getElementById('wsGrimoireSearch');
+  if(!resultsEl || !addedEl || !searchEl) return;
+  const renderAdded = ()=>{
+    addedEl.innerHTML = '';
+    if(!currentSpellsList || currentSpellsList.length===0){ addedEl.innerHTML = '<div class="hint">Sin hechizos añadidos a esta ficha.</div>'; return; }
+    currentSpellsList.forEach((s, idx)=>{
+      const row = document.createElement('div'); row.className = 'grimoire-row';
+      row.innerHTML = `<div><strong>${escapeHtml(s.nombre||s.name||s)}</strong><br><span class="hint">${s.nivel||s.level||''} ${escapeHtml(s.escuela||s.school||'')}</span></div><div style="display:flex;gap:8px"><button class="rail-btn" data-del-added="${idx}">Eliminar</button></div>`;
+      addedEl.appendChild(row);
+    });
+    addedEl.querySelectorAll('[data-del-added]').forEach(btn=> btn.addEventListener('click', async ()=>{
+      const i = parseInt(btn.dataset.delAdded,10);
+      currentSpellsList.splice(i,1);
+      // persist into storage
+      const full = await storeGet('entry:'+currentEntryId);
+      if(full){ full.spellsList = currentSpellsList; await storeSet('entry:'+currentEntryId, full); }
+      renderWsGrimoirePanel();
+    }));
+  };
+  const renderResults = (q='')=>{
+    const qq = (q||'').toLowerCase();
+    const filtered = GRIMOIRE.filter(s=>{
+      if(!qq) return true;
+      if((s.name||'').toLowerCase().includes(qq)) return true;
+      if((s.school||'').toLowerCase().includes(qq)) return true;
+      if(Array.isArray(s.classes) && s.classes.join(' ').toLowerCase().includes(qq)) return true;
+      if((s.blurb||'').toLowerCase().includes(qq)) return true;
+      return false;
+    }).slice(0,60);
+    resultsEl.innerHTML = filtered.map(s=>`<div class="grimoire-row"><div><strong>${escapeHtml(s.name)}</strong><br><span class="hint">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)}</span></div><button class="rail-btn" data-add="${escapeHtml(s.name)}">+ Añadir</button></div>`).join('') || '<div class="hint">Sin resultados.</div>';
+    resultsEl.querySelectorAll('[data-add]').forEach(btn=> btn.addEventListener('click', async ()=>{
+      const spell = GRIMOIRE.find(x=>x.name===btn.dataset.add);
+      if(!spell) return;
+      const line = `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`;
+      if(!currentEntryId){ btn.textContent = 'Abrí una ficha'; return; }
+      await addSpellLineToEntry(currentEntryId, line);
+      // reload currentSpellsList from storage
+      const full = await storeGet('entry:'+currentEntryId);
+      currentSpellsList = full?.spellsList || (full?.spells ? [{ id: uid(), nombre: full.spells, nivel:0, escuela:'', descripcion:[full.spells] }] : []);
+      renderWsGrimoirePanel();
+    }));
+  };
+  searchEl.oninput = (e)=> renderResults(e.target.value);
+  renderResults(''); renderAdded();
 }
 document.getElementById('grimoireBasicSearch').addEventListener('input', (e)=> renderGrimoireBasicList(e.target.value));
 async function addSpellLineToEntry(entryId, line){
@@ -2218,7 +2333,9 @@ document.getElementById('grimoireApiSearchBtn').addEventListener('click', async 
       </div>`).join('');
     results.querySelectorAll('[data-api-spell]').forEach(btn=>{
       btn.addEventListener('click', async ()=>{
-        const targetId = document.getElementById('grimoireTargetEntry').value;
+        let targetId = null;
+        if(currentEntryId && fichasMode==='editor') targetId = currentEntryId;
+        else targetId = document.getElementById('grimoireTargetEntry').value;
         if(!targetId){ btn.textContent='Elegí un personaje'; return; }
         try{
           const detailRes = await fetch('https://www.dnd5eapi.co'+btn.dataset.apiSpell);
@@ -2251,6 +2368,7 @@ async function loadExtras(){
 }
 renderWsTypeOptions('personaje');
 renderWsFolderOptions(null);
+loadSpellsDB();
 loadWorld();
 loadExtras();
 </script>
