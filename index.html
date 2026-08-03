@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <link rel="icon" type="image/x-icon" href="Imagenes/Extras/cogwheel.png">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0d0906">
+<link rel="manifest" id="manifestLink">
 <title>Códice</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&family=Special+Elite&family=Cinzel:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600;700&family=Special+Elite&family=Cinzel:wght@400;600;700&display=swap');
 
 :root{
   --bg-deep: #0d0906;
@@ -26,7 +30,6 @@
   --danger: #c1604a;
   --danger-bright: #e48d75;
   --border-brass: rgba(201,146,47,0.35);
-  --card-summary-size: 13px;
 }
 *{box-sizing:border-box; margin:0; padding:0;}
 html,body{height:100%; scroll-behavior:smooth;}
@@ -35,6 +38,8 @@ body{
   font-family: 'Inter', sans-serif; font-size: 15.5px;
   background: radial-gradient(circle at top left, rgba(255,225,175,0.08), transparent 24%),
               linear-gradient(180deg, #1e160f 0%, #0e0a07 55%, #060402 100%);
+  background-attachment: fixed;
+  background-size: cover;
   -webkit-font-smoothing: antialiased;
 }
 ::-webkit-scrollbar{ width:10px; height:10px; }
@@ -43,7 +48,7 @@ body{
 button{ cursor:pointer; font-family:'Inter',sans-serif; }
 input, select, textarea{ font-family:'Inter', sans-serif; }
 button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-node,
-.map-pin, .esc-rail-item, .subtab, .icon-btn, .grimoire-row, [data-add]{ cursor:pointer; }
+.map-pin, .subtab, .icon-btn, .grimoire-row, .palette-chip, [data-add]{ cursor:pointer; }
 
 .riveted{ position:relative; }
 .riveted::before, .riveted::after{ content:''; position:absolute; width:5px; height:5px; border-radius:50%;
@@ -53,7 +58,10 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 
 @keyframes fadeInUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 @keyframes popIn{ from{opacity:0; transform:scale(0.92);} to{opacity:1; transform:scale(1);} }
-.ficha-card, .home-recent-item, .esc-rail-item{ animation: fadeInUp 0.28s ease both; }
+@keyframes popOut{ from{opacity:1; transform:scale(1);} to{opacity:0; transform:scale(0.92);} }
+@keyframes fadeOut{ from{opacity:1;} to{opacity:0;} }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+.ficha-card, .home-recent-item{ animation: fadeInUp 0.28s ease both; }
 .modal-box, .canvas-node{ animation: popIn 0.2s ease; }
 .map-pin{ animation: popIn 0.25s ease; }
 
@@ -62,31 +70,36 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 }
 .btn-brass:hover{ box-shadow:0 0 14px rgba(241,210,122,0.4); transform:translateY(-1px); }
 .btn-ghost:hover, .rail-btn:hover, .mode-btn:hover{ box-shadow:0 0 10px rgba(123,184,157,0.25); }
-.tab:hover{ box-shadow:0 0 10px rgba(241,210,122,0.18); }
 .ficha-card{ transition: transform 0.18s ease, box-shadow 0.18s ease; }
 .ficha-card:hover{ transform:translateY(-3px); box-shadow:0 8px 22px rgba(0,0,0,0.45), 0 0 16px rgba(201,146,47,0.18); }
 
 /* TOPBAR */
-.topbar{ display:flex; align-items:center; justify-content:space-between; gap:18px; padding:14px 24px;
+.topbar{ display:flex; align-items:center; gap:16px; padding:14px 24px;
   background: linear-gradient(180deg, #241a10, #1a130c); border-bottom:2px solid rgba(201,146,47,0.16); box-shadow:0 2px 12px rgba(0,0,0,0.4); flex-wrap:wrap; }
 .brand-mark{ font-family:'Cinzel', serif; font-weight:700; font-size:17px; color:var(--brass-bright); letter-spacing:0.08em; display:flex; align-items:center; gap:8px; }
 .world-name-input{ background:transparent; border:none; border-bottom:1px dashed var(--border-brass); color:var(--parchment);
-  font-family:'Cinzel', serif; font-size:17px; font-weight:600; padding:2px 4px; min-width:160px; }
+  font-family:'Cinzel', serif; font-size:17px; font-weight:600; padding:2px 4px; min-width:140px; }
 .world-name-input:focus{ outline:none; border-bottom-color:var(--verdigris); }
-.main-tabs{ display:flex; gap:6px; flex-wrap:wrap; }
-.tab{ background:transparent; border:1px solid transparent; color:var(--text-dim2); padding:8px 16px; border-radius:3px; font-size:12px; letter-spacing:0.05em; }
+.nav-dropdown{ position:relative; }
+.nav-menu{ position:absolute; top:120%; left:0; background:var(--bg-panel-raised); border:1px solid var(--border-brass); border-radius:8px; padding:6px; display:none; flex-direction:column; min-width:170px; z-index:80; box-shadow:0 10px 24px rgba(0,0,0,0.4); animation: fadeInUp 0.15s ease; }
+.nav-menu.open{ display:flex; }
+.nav-menu button{ background:transparent; border:none; color:var(--text-dim2); text-align:left; padding:9px 12px; border-radius:5px; font-size:13px; }
+.nav-menu button:hover{ background:var(--bg-panel-hover); color:var(--parchment); }
+.nav-menu button.active{ color:var(--brass-bright); }
+.tab{ background:transparent; border:1px solid var(--border-brass); color:var(--text-dim2); padding:8px 16px; border-radius:3px; font-size:12px; letter-spacing:0.05em; }
 .tab:hover{ color:var(--parchment); }
-.tab.active{ background:var(--bg-panel-raised); border-color:var(--border-brass); color:var(--brass-bright); }
-.topbar-actions{ display:flex; align-items:center; gap:10px; }
+.topbar-actions{ display:flex; align-items:center; gap:10px; margin-left:auto; }
 .icon-round-btn{ background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text); width:36px; height:36px; border-radius:50%; font-size:15px; display:flex; align-items:center; justify-content:center; }
 .icon-round-btn:hover{ box-shadow:0 0 10px rgba(241,210,122,0.3); }
-.topbar-clock{ min-width:66px; text-align:center; font-family:'Special Elite',monospace; color:var(--parchment);
+.topbar-clock{ min-width:60px; text-align:center; font-family:'Special Elite',monospace; color:var(--parchment);
   background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:8px 12px; border-radius:999px; font-size:13px; }
+.btn-brass.spinning{ position:relative; color:transparent !important; pointer-events:none; }
+.btn-brass.spinning::after{ content:''; position:absolute; inset:0; margin:auto; width:14px; height:14px; border:2px solid rgba(36,26,13,0.35); border-top-color:#241a0d; border-radius:50%; animation: spin 0.6s linear infinite; }
 
 /* VIEWS */
-.view{ display:none; min-height: calc(100vh - 78px); width:100%; opacity:0; transform:translateY(8px); transition:opacity 0.25s ease, transform 0.25s ease; }
+.view{ display:none; min-height: calc(100vh - 66px); width:100%; opacity:0; transform:translateY(8px); transition:opacity 0.25s ease, transform 0.25s ease; }
 .view.active{ display:flex; opacity:1; transform:translateY(0); }
-#view-fichas.active, #view-mapas.active, #view-escribir.active, #view-diario.active, #view-bitacora.active{ flex-direction:row; }
+#view-fichas.active, #view-mapas.active, #view-diario.active, #view-bitacora.active{ flex-direction:row; }
 
 /* HOME */
 #view-home{ flex-direction:column; width:100%; }
@@ -112,7 +125,8 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .home-map-preview .map-empty{ display:flex; align-items:center; justify-content:center; min-height:120px; color:var(--text-dim2); font-size:13px; text-align:center; padding:16px; }
 
 /* RAIL */
-.rail{ width:230px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-brass); padding:22px 16px; display:flex; flex-direction:column; gap:16px; }
+.rail{ width:230px; flex-shrink:0; background:var(--bg-panel); border-right:1px solid var(--border-brass); padding:22px 16px;
+  display:flex; flex-direction:column; gap:16px; min-height:0; overflow-y:auto; }
 .rail-title{ font-family:'Special Elite', monospace; font-size:10.5px; letter-spacing:0.12em; text-transform:uppercase; color:var(--brass-dim); margin-bottom:6px; }
 .rail-item{ display:flex; align-items:center; justify-content:space-between; gap:6px; padding:8px 10px; border-radius:3px; font-size:13.5px; color:var(--text-dim2); }
 .rail-item:hover{ background:var(--bg-panel-hover); color:var(--parchment); }
@@ -120,47 +134,51 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .rail-item .icon-btn{ opacity:0; font-size:11px; color:var(--text-dim2); padding:2px 4px; }
 .rail-item:hover .icon-btn{ opacity:0.7; }
 .icon-btn:hover{ opacity:1 !important; color:var(--brass-bright) !important; }
-.rail-btn{ background:transparent; border:1px dashed var(--border-brass); color:var(--brass); padding:8px 10px; border-radius:3px; font-size:11.5px; letter-spacing:0.05em; }
+.rail-btn{ background:transparent; border:1px dashed var(--border-brass); color:var(--brass); padding:8px 10px; border-radius:3px; font-size:11.5px; letter-spacing:0.05em; flex-shrink:0; }
 .rail-btn:hover{ border-color:var(--brass); background: rgba(201,146,47,0.08); }
+.rail-btn.active{ color:var(--verdigris-bright); border-color:var(--verdigris); border-style:solid; }
 .rail-count{ font-size:10px; color:var(--text-dim2); font-family:'Special Elite',monospace; }
-.esc-rail{ overflow-y:auto; }
-#escRailList, #mapList, #journalList, #sessionList{ overflow-y:auto; flex:1; }
+#railToggleBtn{ display:none; }
 
 /* BUTTONS */
 .btn-brass{ background: linear-gradient(180deg, var(--brass-bright), var(--brass-dim)); color:#241a0d; border:none; padding:10px 20px; border-radius:3px;
   font-size:12px; letter-spacing:0.06em; font-weight:bold; box-shadow:0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 4px rgba(0,0,0,0.4); }
 .btn-ghost{ background:transparent; border:1px solid var(--border-brass); color:var(--text-dim2); padding:10px 18px; border-radius:3px; font-size:12px; }
 .btn-ghost:hover{ color:var(--parchment); border-color:var(--brass-dim); }
+.btn-ghost.active{ color:var(--verdigris-bright); border-color:var(--verdigris); }
 .btn-delete{ background:transparent; border:1px solid rgba(193,96,74,0.5); color:var(--danger-bright); padding:10px 18px; border-radius:3px; font-size:12px; }
 .btn-delete:hover{ background: rgba(193,96,74,0.12); }
 .mode-btn{ background:var(--bg-panel-raised); border:1px solid var(--border-brass); color:var(--text-dim2); padding:8px 14px; border-radius:3px; font-size:12px; }
 .mode-btn.active{ color:var(--verdigris-bright); border-color:var(--verdigris); }
 
 /* FICHAS */
-.fichas-main{ flex:1; padding:26px 32px 60px; }
+.fichas-main{ flex:1; padding:26px 32px 60px; min-width:0; }
 .fichas-toolbar{ display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; align-items:center; }
 .search-input{ flex:1; background:var(--bg-panel); border:1px solid var(--border-brass); border-radius:3px; padding:10px 14px; color:var(--text); font-size:14px; min-width:160px; }
 .search-input:focus{ outline:none; border-color:var(--verdigris); }
-.font-size-control{ display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text-dim2); }
 .cards-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(230px,1fr)); gap:18px; }
-.ficha-card{ background:var(--bg-panel-raised); border:1px solid var(--border-brass); border-radius:4px; overflow:hidden; }
+.ficha-card{ background:var(--bg-panel-raised); border:1px solid var(--border-brass); border-radius:4px; overflow:hidden; position:relative; }
+.ficha-check{ position:absolute; top:10px; left:10px; width:20px; height:20px; z-index:2; }
 .ficha-cover{ height:110px; background: linear-gradient(135deg,#2c2216,#1c1610); background-size:cover; background-position:center;
   display:flex; align-items:center; justify-content:center; color:var(--border-brass); font-size:22px; border-bottom:1px solid var(--border-brass); }
 .ficha-body{ padding:14px 16px 16px; }
 .ficha-type{ font-family:'Special Elite',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--type-color, var(--verdigris)); margin-bottom:6px; }
 .ficha-name{ font-family:'Cinzel', serif; font-size:16.5px; font-weight:600; color:var(--parchment); margin-bottom:6px; }
-.ficha-summary{ font-size:var(--card-summary-size); color:var(--text-dim2); line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.ficha-summary{ color:var(--text-dim2); line-height:1.4; max-height:2.8em; overflow:hidden; }
 .ficha-tags{ margin-top:10px; display:flex; flex-wrap:wrap; gap:5px; }
 .tag-pill{ font-family:'Special Elite',monospace; font-size:9.5px; color:var(--text-dim2); border:1px solid var(--border-brass); padding:2px 7px; border-radius:8px; }
 .empty{ text-align:center; padding:90px 20px; color:var(--text-dim2); margin:auto; }
 .empty .glyph{ font-size:36px; margin-bottom:12px; opacity:0.6; color:var(--brass-dim); }
 .empty .title{ font-family:'Cinzel', serif; font-size:20px; color:var(--parchment-dim); margin-bottom:8px; }
 .empty .sub{ font-size:14px; max-width:380px; margin:0 auto; }
+.bulk-bar{ position:sticky; bottom:16px; margin-top:18px; display:none; align-items:center; gap:10px; background:var(--bg-panel-raised);
+  border:1px solid var(--border-brass); border-radius:10px; padding:12px 16px; box-shadow:0 10px 24px rgba(0,0,0,0.4); animation: fadeInUp 0.2s ease; flex-wrap:wrap; }
 
-/* WORKSPACE INLINE */
-.workspace-inline{ background:var(--parchment); color:var(--ink); border-radius:12px; margin:24px; max-width:920px; box-shadow:0 10px 30px rgba(0,0,0,0.3); position:relative; animation: fadeInUp 0.22s ease; }
-.ws-cover{ height:220px; background-size:cover; background-position:center; background-color:#d8c8a0; border-radius:12px 12px 0 0;
-  display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; cursor: grab; }
+/* WORKSPACE (unified with Fichas) */
+.workspace-inline{ background:var(--parchment); color:var(--ink); border-radius:12px; max-width:920px; box-shadow:0 10px 30px rgba(0,0,0,0.3); position:relative; animation: fadeInUp 0.22s ease; }
+.ws-topbar{ display:flex; align-items:center; gap:10px; padding:14px 20px; background: rgba(0,0,0,0.06); border-radius:12px 12px 0 0; flex-wrap:wrap; }
+.ws-topbar .btn-ghost, .ws-topbar .btn-brass{ padding:7px 14px; font-size:11.5px; }
+.ws-cover{ height:220px; background-size:cover; background-position:center; background-color:#d8c8a0; position:relative; overflow:hidden; cursor:grab; }
 .ws-cover:active{ cursor:grabbing; }
 .ws-cover .cover-hint{ font-family:'Special Elite',monospace; font-size:12px; color:#6b6350; background: rgba(255,255,255,0.55); padding:6px 12px; border-radius:12px; pointer-events:none; }
 .ws-cover input[type=file]{ display:none; }
@@ -173,13 +191,21 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .ws-meta-row select{ flex:0 0 auto; }
 .ws-meta-row input{ flex:1; min-width:160px; }
 .ws-summary{ width:100%; background: rgba(255,255,255,0.4); border:1px solid rgba(43,32,24,0.15); border-radius:4px; padding:10px 12px; font-size:14.5px; min-height:52px; resize:vertical; color:var(--ink); }
-.ws-toolbar{ padding:4px 32px; display:flex; gap:8px; flex-wrap:wrap; }
-.ws-toolbar button{ background: rgba(43,32,24,0.06); border:1px solid rgba(43,32,24,0.15); color:var(--ink); padding:6px 12px; border-radius:4px; font-size:11.5px; }
-.ws-toolbar button:hover{ background: rgba(43,32,24,0.12); }
-.ws-content{ margin:14px 32px 0; min-height:220px; padding:14px; background: rgba(255,255,255,0.35); border:1px solid rgba(43,32,24,0.15); border-radius:4px; font-size:15.5px; line-height:1.6; }
+.ws-block{ margin:14px 32px 0; background: rgba(255,255,255,0.28); border:1px solid rgba(43,32,24,0.15); border-radius:8px; padding:12px; }
+.ws-block-header{ display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.ws-block-title{ flex:1; min-width:120px; background:transparent; border:none; border-bottom:1px dashed rgba(43,32,24,0.25); font-family:'Cormorant Garamond',serif; font-size:17px; font-weight:600; color:var(--ink); padding:2px 4px; }
+.ws-block-title:focus{ outline:none; border-bottom-color:var(--verdigris); }
+.ws-block-toolbar{ display:flex; gap:4px; }
+.mini-fmt-btn{ background: rgba(43,32,24,0.08); border:1px solid rgba(43,32,24,0.15); color:var(--ink); width:26px; height:26px; border-radius:4px; font-size:12px; }
+.mini-fmt-btn:hover{ background: rgba(43,32,24,0.16); }
+.ws-content{ min-height:120px; padding:12px; background: rgba(255,255,255,0.35); border:1px solid rgba(43,32,24,0.12); border-radius:4px; font-size:15px; line-height:1.6; }
 .ws-content:focus{ outline:none; border-color:var(--verdigris); }
 .ws-content img{ max-width:100%; border-radius:4px; margin:8px 0; display:block; }
-.ws-content:empty::before{ content: attr(data-placeholder); color: rgba(35,25,20,0.45); pointer-events:none; }
+.ws-content:empty::before{ content: attr(data-placeholder); color: rgba(35,25,20,0.4); pointer-events:none; }
+.ws-add-block-row{ margin:14px 32px 0; }
+.ws-toolbar{ padding:14px 32px 4px; display:flex; gap:8px; flex-wrap:wrap; }
+.ws-toolbar button{ background: rgba(43,32,24,0.06); border:1px solid rgba(43,32,24,0.15); color:var(--ink); padding:6px 12px; border-radius:4px; font-size:11.5px; }
+.ws-toolbar button:hover{ background: rgba(43,32,24,0.12); }
 .ws-actions{ display:flex; justify-content:space-between; align-items:center; padding:20px 32px 28px; margin-top:10px; border-top:1px solid rgba(43,32,24,0.12); }
 .ws-section-title{ margin:18px 0 10px; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:var(--brass-dim); }
 .ws-stats-grid{ display:grid; grid-template-columns: repeat(5, minmax(82px,1fr)); gap:12px; }
@@ -194,18 +220,17 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .ws-sheet-card textarea:focus{ outline:none; }
 .ws-5e-toggle{ margin:14px 0 4px; display:flex; }
 .ws-5e-toggle button{ background: rgba(43,32,24,0.08); border:1px dashed rgba(43,32,24,0.25); color:var(--ink); padding:8px 14px; border-radius:4px; font-size:12px; }
-.ws-5e-toggle button:hover{ background: rgba(43,32,24,0.14); }
-.ws-5e-panel{ display:none; margin-top:8px; }
+.ws-5e-panel{ display:none; padding:0 32px; margin-top:8px; }
 .ws-5e-panel.active{ display:block; }
-.hint{ font-size:11.5px; color:var(--text-dim2); font-family:'Special Elite',monospace; margin-left:auto; }
+.hint{ font-size:11.5px; color:var(--text-dim2); font-family:'Special Elite',monospace; }
 
 /* CANVAS */
 .canvas-toolbar{ display:flex; align-items:center; gap:10px; padding:12px 20px; background:var(--bg-panel); border-bottom:1px solid var(--border-brass); }
-.canvas-viewport{ flex:1; overflow:hidden; position:relative; cursor:grab; background-color:#1a140e;
+.canvas-viewport{ flex:1; overflow:hidden; position:relative; cursor:grab; background-color:#1a140e; }
+.canvas-viewport.panning{ cursor:grabbing; }
+.canvas-inner{ position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0;
   background-image: linear-gradient(rgba(201,146,47,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(201,146,47,0.06) 1px, transparent 1px);
   background-size:34px 34px; }
-.canvas-viewport.panning{ cursor:grabbing; }
-.canvas-inner{ position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0; }
 .canvas-edges{ position:absolute; top:0; left:0; width:4000px; height:3000px; overflow:visible; pointer-events:none; }
 .canvas-edges line{ stroke:var(--brass-dim); stroke-width:2; }
 .canvas-edges circle.edge-del{ fill:#1c1610; stroke:var(--danger); stroke-width:1.5; pointer-events:all; cursor:pointer; }
@@ -220,9 +245,12 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .canvas-node .node-title{ font-family:'Cinzel', serif; font-size:13.5px; color:var(--parchment); line-height:1.3; }
 .canvas-node textarea{ width:100%; background:transparent; border:none; color:var(--text); font-family:'Inter',sans-serif; font-size:13px; resize:none; min-height:60px; }
 .canvas-node textarea:focus{ outline:none; }
+.canvas-palette{ position:absolute; top:16px; right:16px; display:flex; flex-direction:column; gap:10px; z-index:6; }
+.palette-chip{ background:var(--bg-panel-raised); border:1px solid var(--border-brass); padding:10px 16px; border-radius:8px; cursor:grab; font-size:12.5px; color:var(--text-dim2); transition: transform 0.15s ease, box-shadow 0.15s ease; user-select:none; }
+.palette-chip:hover{ transform:scale(1.08); box-shadow:0 0 12px rgba(241,210,122,0.3); color:var(--parchment); }
 
 /* MAPAS */
-.mapas-main{ flex:1; display:flex; flex-direction:column; }
+.mapas-main{ flex:1; display:flex; flex-direction:column; min-width:0; }
 .map-toolbar{ display:flex; align-items:center; gap:10px; padding:12px 20px; background:var(--bg-panel); border-bottom:1px solid var(--border-brass); flex-wrap:wrap; }
 .map-image-wrap{ position:relative; margin:24px; border:2px solid var(--border-brass); border-radius:10px; overflow:auto; background:#0f0c08; align-self:flex-start; min-height:420px; }
 .map-image-wrap img{ display:block; width:100%; height:auto; }
@@ -230,10 +258,17 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .map-pin{ position:absolute; width:22px; height:22px; margin-left:-11px; margin-top:-22px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
 .map-region-label{ position:absolute; font-family:'Cinzel',serif; font-size:12px; color:#fff; text-shadow:0 1px 3px rgba(0,0,0,0.8); pointer-events:none; transform: translate(-50%,-50%); }
 
-/* DIARIO / BITACORA extras */
+/* DIARIO / BITACORA */
+.chapter-writing{ max-width:660px; margin:0 auto; }
+.chapter-title-row{ display:flex; align-items:baseline; gap:10px; }
+.chapter-num{ font-family:'Special Elite',monospace; font-size:12px; color:var(--brass-dim); }
+.chapter-content{ font-family:'Cormorant Garamond', serif; font-size:19px; line-height:1.85; }
 .linked-ficha-check{ display:flex; align-items:center; gap:8px; padding:5px 0; font-size:13px; color: rgba(35,25,20,0.8); }
 .session-summary{ width:100%; background: rgba(255,255,255,0.4); border:1px solid rgba(43,32,24,0.15); border-radius:4px; padding:10px 12px; font-size:14.5px; min-height:70px; resize:vertical; color:var(--ink); margin-top:10px; }
 .links-box{ margin:14px 32px 0; padding:14px; background: rgba(255,255,255,0.25); border:1px solid rgba(43,32,24,0.15); border-radius:6px; }
+
+/* GRIMORIO */
+.grimoire-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--border-brass); border-radius:8px; background: rgba(255,255,255,0.04); }
 
 /* MODAL */
 .modal-overlay{ position:fixed; inset:0; background: rgba(8,6,4,0.7); z-index:100; display:none; align-items:center; justify-content:center; }
@@ -247,7 +282,6 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 .modal-fields input:focus, .modal-fields select:focus, .modal-fields textarea:focus{ outline:none; border-color:var(--verdigris); }
 .modal-actions{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; }
 .modal-actions > div{ display:flex; gap:8px; }
-.grimoire-row{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px; border:1px solid var(--border-brass); border-radius:8px; background: rgba(255,255,255,0.04); }
 
 @media (max-width: 960px){
   .home-grid{ grid-template-columns:1fr; }
@@ -255,8 +289,12 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
   .ws-sheet-columns{ grid-template-columns:1fr; }
 }
 @media (max-width: 760px){
-  .rail{ display:none; }
+  #railToggleBtn{ display:flex; }
+  .rail{ position:fixed; left:0; top:66px; bottom:0; z-index:45; transform:translateX(-100%); transition:transform 0.2s ease; box-shadow:6px 0 20px rgba(0,0,0,0.4); }
+  .rail.open{ transform:translateX(0); }
   .ws-meta-row{ flex-direction:column; }
+  .ws-stats-grid{ grid-template-columns: repeat(2, minmax(100px,1fr)); }
+  .canvas-palette{ flex-direction:row; top:auto; bottom:16px; right:16px; }
 }
 </style>
 </head>
@@ -265,17 +303,22 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
 <div class="topbar">
   <div class="brand-mark">⚙ CÓDICE</div>
   <input id="worldName" class="world-name-input" value="Mundo sin nombre" spellcheck="false">
-  <nav class="main-tabs">
-    <button class="tab active" data-view="home">Inicio</button>
-    <button class="tab" data-view="fichas">Fichas</button>
-    <button class="tab" data-view="escribir">Escribir</button>
-    <button class="tab" data-view="diario">Diario</button>
-    <button class="tab" data-view="bitacora">Bitácora</button>
-    <button class="tab" data-view="canvas">Canvas</button>
-    <button class="tab" data-view="mapas">Mapas</button>
-  </nav>
+  <button class="rail-btn" id="railToggleBtn" type="button">☰ Panel</button>
+  <div class="nav-dropdown">
+    <button class="tab" id="navMenuBtn" type="button">☰ Secciones ▾</button>
+    <div class="nav-menu" id="navMenu">
+      <button data-view="home" class="active">Inicio</button>
+      <button data-view="fichas">Fichas</button>
+      <button data-view="diario">Diario</button>
+      <button data-view="bitacora">Bitácora</button>
+      <button data-view="canvas">Canvas</button>
+      <button data-view="mapas">Mapas</button>
+      <button data-view="grimorio">Grimorio</button>
+    </div>
+  </div>
   <div class="topbar-actions">
-    <button class="icon-round-btn" id="settingsBtn" title="Ajustes">⚙</button>
+    <button class="icon-round-btn" id="settingsBtn" title="Ajustes" type="button">⚙</button>
+    <button class="icon-round-btn" id="folderBtn" title="Conectar carpeta" type="button">📁</button>
     <button class="btn-ghost" id="importProjectBtn">Importar</button>
     <button class="btn-brass" id="exportProjectBtn">Exportar</button>
     <div class="topbar-clock" id="topbarClock">00:00</div>
@@ -289,7 +332,7 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
     <div class="home-copy">
       <div class="home-overline">TU LABORATORIO</div>
       <h1 class="home-title">Escribe, conecta y explora tu mundo.</h1>
-      <p class="home-text">Tus cartas aparecen aquí cuando volvés al proyecto. Mantené tus personajes, mapas y relaciones siempre a mano.</p>
+      <p class="home-text">Tus cartas aparecen aquí cuando volvés al proyecto.</p>
       <div class="home-actions">
         <button class="btn-brass" id="newFichaBtnHome">+ Nueva carta</button>
         <button class="btn-ghost" id="goToCanvasBtn">Ver conexiones</button>
@@ -314,7 +357,7 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
   </div>
 </section>
 
-<!-- ===== FICHAS ===== -->
+<!-- ===== FICHAS (unificado: grilla + editor) ===== -->
 <section id="view-fichas" class="view">
   <aside class="rail">
     <div class="rail-title">Carpetas</div>
@@ -324,34 +367,34 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
     <div id="typeFilterList"></div>
   </aside>
   <div class="fichas-main">
-    <div class="fichas-toolbar">
-      <input class="search-input" id="searchFichas" placeholder="Buscar por nombre, etiqueta o contenido…">
-      <div class="font-size-control">
-        <label for="summaryFontSize">Tamaño descripción</label>
-        <input type="range" id="summaryFontSize" min="11" max="18" value="13">
+    <div id="fichasGridWrap">
+      <div class="fichas-toolbar">
+        <input class="search-input" id="searchFichas" placeholder="Buscar por nombre, etiqueta o contenido…">
+        <button class="btn-ghost" id="selectModeBtn" type="button">☑ Seleccionar</button>
+        <button class="btn-brass" id="newFichaBtn">+ Nueva ficha</button>
       </div>
-      <button class="btn-brass" id="newFichaBtn">+ Nueva ficha</button>
+      <div id="fichasGrid"></div>
+      <div class="bulk-bar" id="bulkBar">
+        <span id="bulkCount">0 seleccionadas</span>
+        <button class="rail-btn" id="bulkFolderBtn" type="button">📁 Mover a carpeta</button>
+        <button class="rail-btn" id="bulkPrintBtn" type="button">🖨 Imprimir</button>
+        <button class="btn-delete" id="bulkDeleteBtn" type="button">Eliminar</button>
+        <button class="btn-ghost" id="bulkCancelBtn" type="button">Cancelar</button>
+      </div>
     </div>
-    <div id="fichasGrid"></div>
-  </div>
-</section>
-
-<!-- ===== ESCRIBIR (sala de escritura, en la página) ===== -->
-<section id="view-escribir" class="view">
-  <aside class="rail esc-rail">
-    <div class="rail-title">Fichas</div>
-    <input class="search-input" id="escSearch" placeholder="Buscar…" style="margin-bottom:6px;">
-    <div id="escRailList"></div>
-    <button class="rail-btn" id="escNewBtn" style="width:100%;">+ Nueva ficha</button>
-  </aside>
-  <div class="fichas-main" style="padding:0;">
-    <div class="workspace-inline riveted" id="workspaceInline">
+    <div class="workspace-inline riveted" id="workspaceInline" style="display:none;">
+      <div class="ws-topbar">
+        <button class="btn-ghost" id="backToGridBtn" type="button">← Volver a fichas</button>
+        <button class="btn-ghost" id="wsSwitchBtn" type="button">⇅ Cambiar ficha</button>
+        <button class="btn-ghost" id="printEntryBtn" type="button">🖨 Imprimir</button>
+        <span class="hint" id="wsDirtyHint" style="margin-left:auto;"></span>
+      </div>
       <div class="ws-cover" id="wsCover">
         <span class="cover-hint" id="wsCoverHint">🖼 Click para subir portada</span>
         <input type="file" id="wsCoverFile" accept="image/*">
       </div>
       <div class="ws-cover-controls" id="wsCoverControls" style="display:none;">
-        <span class="hint" style="margin:0;">Arrastrá la imagen para reposicionarla</span>
+        <span class="hint">Arrastrá la imagen para reposicionarla</span>
         <input type="range" id="wsCoverZoomInput" min="1" max="2.5" step="0.05" value="1">
       </div>
       <div class="ws-header">
@@ -365,40 +408,38 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
         <div class="ws-5e-toggle" id="ws5eToggle" style="display:none;">
           <button id="wsToggle5E" type="button">Activar hoja 5E</button>
         </div>
-        <div id="ws5ePanel" class="ws-5e-panel">
-          <div class="ws-section-title">Hoja de personaje</div>
-          <div class="ws-stats-grid">
-            <div class="ws-stat"><label>Fuerza</label><input id="wsSTR" type="number" min="1"></div>
-            <div class="ws-stat"><label>Destreza</label><input id="wsDEX" type="number" min="1"></div>
-            <div class="ws-stat"><label>Constitución</label><input id="wsCON" type="number" min="1"></div>
-            <div class="ws-stat"><label>Inteligencia</label><input id="wsINT" type="number" min="1"></div>
-            <div class="ws-stat"><label>Sabiduría</label><input id="wsWIS" type="number" min="1"></div>
-            <div class="ws-stat"><label>Carisma</label><input id="wsCHA" type="number" min="1"></div>
-            <div class="ws-stat ws-short"><label>Pv</label><input id="wsHP" type="number" min="0"></div>
-            <div class="ws-stat ws-short"><label>CA</label><input id="wsAC" type="number" min="0"></div>
-            <div class="ws-stat ws-short"><label>Velocidad</label><input id="wsSpeed" type="text"></div>
-            <div class="ws-stat ws-short"><label>Prof.</label><input id="wsProf" type="text"></div>
+      </div>
+      <div id="ws5ePanel" class="ws-5e-panel">
+        <div class="ws-section-title">Hoja de personaje</div>
+        <div class="ws-stats-grid">
+          <div class="ws-stat"><label>Fuerza</label><input id="wsSTR" type="number" min="1"></div>
+          <div class="ws-stat"><label>Destreza</label><input id="wsDEX" type="number" min="1"></div>
+          <div class="ws-stat"><label>Constitución</label><input id="wsCON" type="number" min="1"></div>
+          <div class="ws-stat"><label>Inteligencia</label><input id="wsINT" type="number" min="1"></div>
+          <div class="ws-stat"><label>Sabiduría</label><input id="wsWIS" type="number" min="1"></div>
+          <div class="ws-stat"><label>Carisma</label><input id="wsCHA" type="number" min="1"></div>
+          <div class="ws-stat ws-short"><label>Pv</label><input id="wsHP" type="number" min="0"></div>
+          <div class="ws-stat ws-short"><label>CA</label><input id="wsAC" type="number" min="0"></div>
+          <div class="ws-stat ws-short"><label>Velocidad</label><input id="wsSpeed" type="text"></div>
+          <div class="ws-stat ws-short"><label>Prof.</label><input id="wsProf" type="text"></div>
+        </div>
+        <div class="ws-sheet-columns">
+          <div class="ws-sheet-card">
+            <div class="ws-sheet-title">Hechizos</div>
+            <button class="rail-btn" id="openGrimoireBtn" type="button" style="margin-bottom:8px;">📖 Grimorio básico</button>
+            <textarea id="wsSpells" placeholder="Lista de conjuros..."></textarea>
           </div>
-          <div class="ws-sheet-columns">
-            <div class="ws-sheet-card">
-              <div class="ws-sheet-title">Hechizos</div>
-              <button class="rail-btn" id="openGrimoireBtn" type="button" style="margin-bottom:8px;">📖 Abrir grimorio 5E</button>
-              <textarea id="wsSpells" placeholder="Lista de conjuros, rituales y preparaciones..."></textarea>
-            </div>
-            <div class="ws-sheet-card">
-              <div class="ws-sheet-title">Inventario</div>
-              <textarea id="wsInventory" placeholder="Objetos, tesoros, equipo y reliquias..."></textarea>
-            </div>
+          <div class="ws-sheet-card">
+            <div class="ws-sheet-title">Inventario</div>
+            <textarea id="wsInventory" placeholder="Objetos, tesoros, equipo..."></textarea>
           </div>
         </div>
       </div>
       <div class="ws-toolbar">
-        <button id="insertImgBtn" type="button">🖼 Insertar imagen en el texto</button>
-        <button id="printEntryBtn" type="button">🖨 Imprimir ficha</button>
+        <button id="addBlockBtn" type="button">+ Añadir sección de texto</button>
         <input type="file" id="contentImgFile" accept="image/*" style="display:none">
-        <span class="hint" id="wsDirtyHint"></span>
       </div>
-      <div class="ws-content" id="wsContent" contenteditable="true" data-placeholder="Historia, descripción, secretos, relaciones…"></div>
+      <div id="wsBlocks"></div>
       <div class="ws-actions">
         <button class="btn-delete" id="wsDelete">Eliminar ficha</button>
         <button class="btn-brass" id="wsSave">Guardar ficha</button>
@@ -407,48 +448,49 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
   </div>
 </section>
 
-<!-- ===== DIARIO DEL VIAJERO ===== -->
+<!-- ===== DIARIO (capítulos) ===== -->
 <section id="view-diario" class="view">
   <aside class="rail">
     <div class="rail-title">Diario del viajero</div>
     <div id="journalList"></div>
-    <button class="rail-btn" id="newJournalBtn" style="width:100%;">+ Nueva entrada</button>
+    <button class="rail-btn" id="newJournalBtn" style="width:100%;">+ Nuevo capítulo</button>
   </aside>
-  <div class="fichas-main" style="padding:0;">
-    <div class="workspace-inline riveted" id="journalEditor" style="display:none;">
+  <div class="fichas-main" style="padding:26px 32px 60px;">
+    <div class="workspace-inline riveted chapter-writing" id="journalEditor" style="display:none;">
       <div class="ws-header">
-        <input class="ws-name-input" id="journalTitle" placeholder="Título de la entrada">
+        <div class="chapter-title-row"><span class="chapter-num" id="journalNum"></span></div>
+        <input class="ws-name-input" id="journalTitle" placeholder="Título del capítulo">
         <div class="ws-meta-row"><input type="date" id="journalDate"></div>
       </div>
-      <div class="ws-toolbar">
-        <button id="journalInsertImgBtn" type="button">🖼 Insertar imagen</button>
+      <div class="ws-toolbar" id="journalToolbar">
+        <button id="journalInsertImgBtn" type="button">🖼 Imagen</button>
         <input type="file" id="journalImgFile" accept="image/*" style="display:none">
       </div>
-      <div class="ws-content" id="journalContent" contenteditable="true" data-placeholder="Qué pasó hoy en el viaje…"></div>
+      <div class="ws-content chapter-content" id="journalContent" contenteditable="true" data-placeholder="Qué pasó hoy en el viaje…" style="margin:0 32px 0;"></div>
       <div class="ws-actions">
         <button class="btn-delete" id="journalDelete">Eliminar</button>
-        <button class="btn-brass" id="journalSave">Guardar entrada</button>
+        <button class="btn-brass" id="journalSave">Guardar capítulo</button>
       </div>
     </div>
-    <div class="empty" id="journalEmpty"><div class="glyph">📔</div><div class="title">Sin entradas todavía</div><div class="sub">Creá tu primera entrada de diario.</div></div>
+    <div class="empty" id="journalEmpty"><div class="glyph">📔</div><div class="title">Sin capítulos todavía</div><div class="sub">Creá el primer capítulo de tu diario.</div></div>
   </div>
 </section>
 
-<!-- ===== BITÁCORA DE SESIONES ===== -->
+<!-- ===== BITÁCORA ===== -->
 <section id="view-bitacora" class="view">
   <aside class="rail">
     <div class="rail-title">Bitácora de sesiones</div>
     <div id="sessionList"></div>
     <button class="rail-btn" id="newSessionBtn" style="width:100%;">+ Nueva sesión</button>
   </aside>
-  <div class="fichas-main" style="padding:0;">
+  <div class="fichas-main" style="padding:26px 32px 60px;">
     <div class="workspace-inline riveted" id="sessionEditor" style="display:none;">
       <div class="ws-header">
         <input class="ws-name-input" id="sessionTitle" placeholder="Título de la sesión">
         <div class="ws-meta-row"><input type="date" id="sessionDate"></div>
         <textarea class="session-summary" id="sessionSummary" placeholder="Resumen de lo ocurrido…" style="margin-top:0;"></textarea>
       </div>
-      <div class="ws-content" id="sessionNotes" contenteditable="true" data-placeholder="Notas detalladas de la sesión…"></div>
+      <div class="ws-content" id="sessionNotes" contenteditable="true" data-placeholder="Notas detalladas de la sesión…" style="margin:14px 32px 0;"></div>
       <div class="links-box">
         <div class="ws-section-title" style="margin-top:0;">Fichas relacionadas</div>
         <div id="sessionLinks"></div>
@@ -471,9 +513,13 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
       <button class="mode-btn" id="connectModeBtn">🔗 Conectar</button>
       <button class="mode-btn" id="zoomOutBtn">－</button>
       <button class="mode-btn" id="zoomInBtn">＋</button>
-      <span class="hint" id="canvasHint">Arrastrá el fondo para mover el lienzo</span>
+      <span class="hint" id="canvasHint">Arrastrá el fondo para mover el lienzo, o arrastrá los chips de la derecha</span>
     </div>
     <div class="canvas-viewport" id="canvasViewport">
+      <div class="canvas-palette">
+        <div class="palette-chip" draggable="true" data-kind="note">📝 Nota</div>
+        <div class="palette-chip" draggable="true" data-kind="entry">🃏 Ficha</div>
+      </div>
       <div class="canvas-inner" id="canvasInner"><svg class="canvas-edges" id="canvasEdges"></svg></div>
     </div>
   </div>
@@ -508,6 +554,24 @@ button, .rail-item, .ficha-card, .home-recent-item, .tab, .mode-btn, .canvas-nod
   </div>
 </section>
 
+<!-- ===== GRIMORIO ===== -->
+<section id="view-grimorio" class="view">
+  <div class="fichas-main" style="padding:26px 32px 60px;">
+    <div class="fichas-toolbar">
+      <select id="grimoireTargetEntry" style="max-width:220px;"></select>
+      <input class="search-input" id="grimoireBasicSearch" placeholder="Buscar en el grimorio básico (español)…">
+    </div>
+    <div class="rail-title">Grimorio básico (español, sin conexión)</div>
+    <div id="grimoireBasicList" class="cards-grid"></div>
+    <div class="rail-title" style="margin-top:26px;">Catálogo completo — dnd5eapi.co (inglés)</div>
+    <div class="fichas-toolbar">
+      <input class="search-input" id="grimoireApiSearch" placeholder="Buscar hechizo en la API completa…">
+      <button class="btn-ghost" id="grimoireApiSearchBtn" type="button">Buscar</button>
+    </div>
+    <div id="grimoireApiResults"></div>
+  </div>
+</section>
+
 <div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
 
 <script>
@@ -518,6 +582,7 @@ const TYPES = {
   objeto:    { label:'Objeto',    color:'#c98fd6', glyph:'◆' }
 };
 const uid = () => 'id_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+const PROJECT_FILE_NAME_SUFFIX = '_project.json';
 
 const GRIMOIRE = [
  {name:'Prestidigitación', level:0, school:'Transmutación', blurb:'Truco de manos menor: enciende una vela, limpia una mancha, crea un efecto sensorial pequeño.'},
@@ -528,7 +593,6 @@ const GRIMOIRE = [
  {name:'Descarga eléctrica', level:0, school:'Evocación', blurb:'Toque cargado de electricidad que daña e impide reacciones.'},
  {name:'Orientación', level:0, school:'Adivinación', blurb:'Otorga un pequeño bono a una prueba de habilidad.'},
  {name:'Reparar', level:0, school:'Transmutación', blurb:'Arregla una rotura o daño menor en un objeto.'},
- {name:'Escudo (truco menor)', level:0, school:'Abjuración', blurb:'Pequeño resplandor defensivo instintivo.'},
  {name:'Golpe llameante', level:0, school:'Evocación', blurb:'Ataque cuerpo a cuerpo envuelto en llamas.'},
  {name:'Detectar magia', level:1, school:'Adivinación', blurb:'Sientes la presencia de magia cercana y su escuela general.'},
  {name:'Identificar', level:1, school:'Adivinación', blurb:'Revela las propiedades mágicas de un objeto o hechizo activo.'},
@@ -539,17 +603,12 @@ const GRIMOIRE = [
  {name:'Misil mágico', level:1, school:'Evocación', blurb:'Dardos de energía que impactan sin posibilidad de fallo.'},
  {name:'Sueño', level:1, school:'Encantamiento', blurb:'Sume a varias criaturas débiles en un sueño mágico.'},
  {name:'Fuego feérico', level:1, school:'Ilusión', blurb:'Cubre objetivos con luz coloreada, revelándolos aunque sean invisibles.'},
- {name:'Amistad', level:1, school:'Encantamiento', blurb:'Vuelve amistosa temporalmente a una criatura.'},
  {name:'Salto', level:1, school:'Transmutación', blurb:'Triplica la distancia de salto del objetivo.'},
- {name:'Caballo fantasmal', level:1, school:'Ilusión', blurb:'Invoca una montura espectral veloz y silenciosa.'},
- {name:'Alarma', level:1, school:'Abjuración', blurb:'Protege una zona con una advertencia mágica silenciosa o audible.'},
  {name:'Nube de niebla', level:1, school:'Conjuración', blurb:'Crea una niebla densa que bloquea la visión en un área.'},
  {name:'Invisibilidad', level:2, school:'Ilusión', blurb:'Vuelve invisible al objetivo hasta que ataque o lance un conjuro.'},
  {name:'Telaraña', level:2, school:'Conjuración', blurb:'Llena un área con telarañas pegajosas que atrapan criaturas.'},
- {name:'Ceguera/Sordera', level:2, school:'Transmutación', blurb:'Priva a una criatura de la vista o el oído.'},
  {name:'Sugestión', level:2, school:'Encantamiento', blurb:'Sugiere mágicamente un curso de acción razonable.'},
  {name:'Rayo abrasador', level:2, school:'Evocación', blurb:'Dos rayos de fuego que pueden incendiar objetos inflamables.'},
- {name:'Ver invisible', level:2, school:'Adivinación', blurb:'Permite ver criaturas y objetos invisibles cercanos.'},
  {name:'Levitar', level:2, school:'Transmutación', blurb:'Hace flotar a una criatura u objeto en el aire.'},
  {name:'Silencio', level:2, school:'Ilusión', blurb:'Crea una zona donde no se puede producir sonido.'},
  {name:'Restablecimiento menor', level:2, school:'Abjuración', blurb:'Cura una enfermedad o elimina una condición debilitante.'},
@@ -557,41 +616,27 @@ const GRIMOIRE = [
  {name:'Bola de fuego', level:3, school:'Evocación', blurb:'Explosión ardiente que daña a todos en un área amplia.'},
  {name:'Contrahechizo', level:3, school:'Abjuración', blurb:'Interrumpe el conjuro que otra criatura está lanzando.'},
  {name:'Volar', level:3, school:'Transmutación', blurb:'Otorga velocidad de vuelo al objetivo durante varios minutos.'},
- {name:'Velocidad', level:3, school:'Transmutación', blurb:'Duplica la velocidad y mejora reflejos del objetivo.'},
  {name:'Lentitud', level:3, school:'Transmutación', blurb:'Ralentiza drásticamente a varios enemigos en un área.'},
  {name:'Disipar magia', level:3, school:'Abjuración', blurb:'Termina un efecto mágico activo en un objetivo.'},
- {name:'Respirar bajo el agua', level:3, school:'Transmutación', blurb:'Permite respirar bajo el agua durante horas.'},
  {name:'Clarividencia', level:3, school:'Adivinación', blurb:'Crea un sensor invisible que ve y oye un lugar distante.'},
  {name:'Puerta dimensional', level:4, school:'Conjuración', blurb:'Teletransporta instantáneamente al conjurador a un punto visible.'},
  {name:'Polimorfar', level:4, school:'Transmutación', blurb:'Transforma a una criatura en otra forma, alterando sus estadísticas.'},
  {name:'Muro de fuego', level:4, school:'Evocación', blurb:'Erige un muro ardiente que daña a quien lo cruza.'},
  {name:'Piel de piedra', level:4, school:'Abjuración', blurb:'Resistencia casi total al daño físico durante un tiempo.'},
  {name:'Confusión', level:4, school:'Encantamiento', blurb:'Vuelve errático el comportamiento de varias criaturas.'},
- {name:'Libertad de movimiento', level:4, school:'Abjuración', blurb:'Ignora efectos que restringen el movimiento.'},
- {name:'Convocar elemental', level:4, school:'Conjuración', blurb:'Invoca a un elemental para que luche a tu lado.'},
  {name:'Muro de fuerza', level:5, school:'Evocación', blurb:'Barrera invisible e indestructible que nada puede atravesar.'},
  {name:'Telepatía', level:5, school:'Evocación', blurb:'Comunicación mental a gran distancia con una criatura conocida.'},
- {name:'Legión de espadas', level:5, school:'Evocación', blurb:'Docenas de espadas espectrales atacan en un área.'},
- {name:'Contactar a otro plano', level:5, school:'Adivinación', blurb:'Contacta con una entidad de otro plano para hacer preguntas.'},
  {name:'Curación en masa', level:5, school:'Evocación', blurb:'Restaura puntos de golpe a varias criaturas a la vez.'},
- {name:'Palabra de poder: aturdir', level:8, school:'Encantamiento', blurb:'Aturde instantáneamente a una criatura con una sola palabra.'},
+ {name:'Restauración mayor', level:5, school:'Abjuración', blurb:'Revierte maldiciones, transformaciones o pérdida de habilidad.'},
  {name:'Sol vengativo', level:6, school:'Evocación', blurb:'Crea un pequeño sol que daña con su luz radiante.'},
  {name:'Muro de hielo', level:6, school:'Evocación', blurb:'Erige una muralla helada que bloquea el paso.'},
- {name:'Verdadera resurrección', level:9, school:'Necromancia', blurb:'Devuelve la vida a un fallecido, aunque el cuerpo ya no exista.'},
+ {name:'Contingencia', level:6, school:'Evocación', blurb:'Prepara un conjuro que se activa automáticamente ante una condición.'},
+ {name:'Portal etéreo', level:7, school:'Conjuración', blurb:'Permite viajar entre el plano material y el plano etéreo.'},
+ {name:'Simulacro', level:7, school:'Ilusión', blurb:'Crea una copia ilusoria pero funcional de una criatura conocida.'},
  {name:'Enjambre de meteoros', level:9, school:'Evocación', blurb:'Bólidos de fuego caen del cielo devastando un área enorme.'},
  {name:'Deseo', level:9, school:'Conjuración', blurb:'El conjuro más poderoso: altera la realidad según se desee.'},
  {name:'Portal', level:9, school:'Conjuración', blurb:'Abre un portal circular entre dos ubicaciones distantes o planos.'},
- {name:'Time Stop / Alto en el tiempo', level:9, school:'Transmutación', blurb:'Detiene el flujo del tiempo para todos menos el conjurador.'},
- {name:'Aliento vital', level:5, school:'Necromancia', blurb:'Devuelve a la vida a una criatura fallecida recientemente.'},
- {name:'Golpe letal', level:6, school:'Necromancia', blurb:'Un toque que puede matar instantáneamente si el objetivo falla.'},
- {name:'Prisión mental', level:9, school:'Ilusión', blurb:'Atrapa a una criatura en una prisión ilusoria de su propia mente.'},
- {name:'Restauración mayor', level:5, school:'Abjuración', blurb:'Revierte maldiciones, transformaciones o pérdida de habilidad.'},
- {name:'Contingencia', level:6, school:'Evocación', blurb:'Prepara un conjuro que se activa automáticamente ante una condición.'},
- {name:'Proyección astral', level:9, school:'Nigromancia', blurb:'Proyecta el espíritu a otro plano dejando el cuerpo protegido.'},
- {name:'Invocar demonio', level:6, school:'Conjuración', blurb:'Trae a un demonio a este plano para que sirva o luche.'},
- {name:'Escudriñar', level:5, school:'Adivinación', blurb:'Crea un sensor invisible en un lugar que se conoce muy bien.'},
- {name:'Portal etéreo', level:7, school:'Conjuración', blurb:'Permite viajar entre el plano material y el plano etéreo.'},
- {name:'Simulacro', level:7, school:'Ilusión', blurb:'Crea una copia ilusoria pero funcional de una criatura conocida.'},
+ {name:'Verdadera resurrección', level:9, school:'Necromancia', blurb:'Devuelve la vida a un fallecido, aunque el cuerpo ya no exista.'},
 ];
 
 /* ========================= STATE ========================= */
@@ -601,6 +646,10 @@ let activeFolder = 'all';
 let activeType = 'all';
 let searchTerm = '';
 let currentEntryId = null;
+let currentBlocks = [];
+let fichasMode = 'grid';
+let selectMode = false;
+let selectedIds = new Set();
 let wsEnable5E = false;
 let wsCoverData = null;
 let wsCoverPos = { x:50, y:50 };
@@ -629,6 +678,7 @@ let journalEntries = [];
 let currentJournalId = null;
 let sessionLog = [];
 let currentSessionId = null;
+let grimorioInited = false;
 
 function markDirty(){ projectDirty = true; }
 function clearDirty(){ projectDirty = false; }
@@ -705,13 +755,13 @@ function renderField(f){
 function openModal(cfg){
   const overlay = document.getElementById('modalOverlay');
   const box = document.getElementById('modalBox');
-  box.style.width = '';
+  box.style.width = cfg.wide ? 'min(560px,92vw)' : '';
   box.innerHTML = `
     <div class="modal-title">${cfg.title}</div>
     ${cfg.message ? `<div class="modal-message">${cfg.message}</div>` : ''}
     <div class="modal-fields">${(cfg.fields||[]).map(renderField).join('')}</div>
     <div class="modal-actions">
-      <div>${cfg.showDelete ? '<button class="btn-delete" id="modalDelete">Eliminar</button>' : ''}</div>
+      <div>${cfg.showDelete ? `<button class="btn-delete" id="modalDelete">${cfg.deleteLabel||'Eliminar'}</button>` : ''}</div>
       <div>
         <button class="btn-ghost" id="modalCancel">Cancelar</button>
         <button class="btn-brass" id="modalSubmit">${cfg.submitLabel||'Guardar'}</button>
@@ -734,6 +784,7 @@ function openModal(cfg){
 function openConfirm({title, message, onConfirm}){
   const overlay = document.getElementById('modalOverlay');
   const box = document.getElementById('modalBox');
+  box.style.width = '';
   box.innerHTML = `
     <div class="modal-title">${title}</div>
     <div class="modal-message">${message}</div>
@@ -748,6 +799,7 @@ function openConfirm({title, message, onConfirm}){
 function openUnsavedGuard(name, onSave, onDiscard){
   const overlay = document.getElementById('modalOverlay');
   const box = document.getElementById('modalBox');
+  box.style.width = '';
   box.innerHTML = `
     <div class="modal-title">Cambios sin guardar</div>
     <div class="modal-message">Tenés cambios sin guardar en "${escapeHtml(name||'esta ficha')}". ¿Qué querés hacer?</div>
@@ -760,7 +812,13 @@ function openUnsavedGuard(name, onSave, onDiscard){
   document.getElementById('guardSave').onclick = async ()=>{ closeModal(); await onSave(); };
   document.getElementById('guardDiscard').onclick = async ()=>{ closeModal(); await onDiscard(); };
 }
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+function closeModal(){
+  const overlay = document.getElementById('modalOverlay');
+  const box = document.getElementById('modalBox');
+  box.style.animation = 'popOut 0.15s ease forwards';
+  overlay.style.animation = 'fadeOut 0.15s ease forwards';
+  setTimeout(()=>{ overlay.classList.remove('open'); box.style.animation=''; overlay.style.animation=''; }, 150);
+}
 document.getElementById('modalBox').addEventListener('keydown', (e)=>{
   if(e.key==='Enter' && e.target.tagName==='INPUT' && e.target.type!=='color'){
     e.preventDefault();
@@ -776,27 +834,47 @@ document.addEventListener('focusin', (e)=>{
 });
 
 /* ========================= THEME / SETTINGS ========================= */
-function defaultTheme(){ return { brass:'#c9922f', verdigris:'#7bb89d', bgDeep:'#0d0906', parchment:'#e8dcc3' }; }
+function defaultTheme(){ return { brass:'#c9922f', verdigris:'#7bb89d', parchment:'#e8dcc3' }; }
 function applyTheme(){
   const t = Object.assign(defaultTheme(), worldMeta.theme||{});
   const root = document.documentElement.style;
-  root.setProperty('--brass', t.brass);
-  root.setProperty('--verdigris', t.verdigris);
-  root.setProperty('--parchment', t.parchment);
+  root.setProperty('--brass', t.brass); root.setProperty('--verdigris', t.verdigris); root.setProperty('--parchment', t.parchment);
+}
+async function tryAutoImportFromFolder(){
+  if(!dirHandle) return { ok:false };
+  try{
+    let jsonFile = null;
+    for await (const entry of dirHandle.values()){
+      if(entry.kind === 'file' && entry.name.toLowerCase().endsWith('.json')){ jsonFile = entry; break; }
+    }
+    if(!jsonFile) return { ok:false, reason:'none' };
+    const file = await jsonFile.getFile();
+    await importProject(file, true);
+    return { ok:true };
+  }catch(e){ return { ok:false, reason:'error' }; }
 }
 async function connectFolder(){
   if(!window.showDirectoryPicker){
     openModal({ title:'No disponible', fields:[], submitLabel:'Cerrar', message:'Tu navegador no soporta conectar carpetas directamente. Usá Exportar/Importar para mover el proyecto entre computadoras.' });
     return;
   }
-  try{
-    dirHandle = await window.showDirectoryPicker({ mode:'readwrite' });
-    openModal({ title:'Carpeta conectada', fields:[], submitLabel:'Cerrar', message:`Conectado a "${dirHandle.name}". Cada vez que uses Exportar, también se guardará una copia ahí.` });
-  }catch(e){ /* cancelado */ }
+  try{ dirHandle = await window.showDirectoryPicker({ mode:'readwrite' }); }
+  catch(e){ return; }
+  const res = await tryAutoImportFromFolder();
+  if(res.ok){
+    openModal({ title:'Proyecto cargado', fields:[], submitLabel:'Cerrar', message:`Se encontró y cargó un proyecto desde "${escapeHtml(dirHandle.name)}".` });
+  } else {
+    openModal({
+      title:'Carpeta conectada', fields:[], submitLabel:'Cerrar', showDelete:true, deleteLabel:'Elegir otra carpeta',
+      message:`No encontramos un archivo de proyecto (.json) válido en "${escapeHtml(dirHandle.name)}". A partir de ahora, cada Exportar guardará ahí.`,
+      onDelete: connectFolder
+    });
+  }
 }
 function openSettings(){
   const overlay = document.getElementById('modalOverlay');
   const box = document.getElementById('modalBox');
+  box.style.width = '';
   const theme = Object.assign(defaultTheme(), worldMeta.theme||{});
   box.innerHTML = `
     <div class="modal-title">Ajustes</div>
@@ -805,7 +883,7 @@ function openSettings(){
       <div class="field"><label>Color verdigris</label><input type="color" id="th-verdigris" value="${theme.verdigris}"></div>
       <div class="field"><label>Color pergamino</label><input type="color" id="th-parchment" value="${theme.parchment}"></div>
     </div>
-    <div class="modal-message">📁 Carpeta local: ${dirHandle ? 'conectada — '+escapeHtml(dirHandle.name) : 'no conectada'}. Si esa carpeta está dentro de Google Drive, Dropbox o OneDrive, tu proyecto queda sincronizado entre computadoras cada vez que exportás.</div>
+    <div class="modal-message">📁 Carpeta local: ${dirHandle ? 'conectada — '+escapeHtml(dirHandle.name) : 'no conectada'}.</div>
     <div class="modal-actions">
       <div><button class="btn-ghost" id="connectFolderBtn2" type="button">${dirHandle?'Cambiar carpeta':'Conectar carpeta'}</button></div>
       <div><button class="btn-ghost" id="modalCancel">Cerrar</button><button class="btn-brass" id="saveThemeBtn">Guardar paleta</button></div>
@@ -814,34 +892,40 @@ function openSettings(){
   document.getElementById('modalCancel').onclick = closeModal;
   document.getElementById('connectFolderBtn2').onclick = connectFolder;
   document.getElementById('saveThemeBtn').onclick = async ()=>{
-    worldMeta.theme = {
-      brass: document.getElementById('th-brass').value,
-      verdigris: document.getElementById('th-verdigris').value,
-      bgDeep: theme.bgDeep,
-      parchment: document.getElementById('th-parchment').value
-    };
+    worldMeta.theme = { brass: document.getElementById('th-brass').value, verdigris: document.getElementById('th-verdigris').value, parchment: document.getElementById('th-parchment').value };
     applyTheme(); await storeSet('world-meta', worldMeta); markDirty(); closeModal();
   };
 }
 document.getElementById('settingsBtn').addEventListener('click', openSettings);
+document.getElementById('folderBtn').addEventListener('click', connectFolder);
 
 /* ========================= NAV ========================= */
-document.querySelectorAll('.tab').forEach(tab=>{
-  tab.addEventListener('click', async () => await navigateTo(tab.dataset.view));
+document.getElementById('navMenuBtn').addEventListener('click', (e)=>{ e.stopPropagation(); document.getElementById('navMenu').classList.toggle('open'); });
+document.addEventListener('click', ()=> document.getElementById('navMenu').classList.remove('open'));
+document.querySelectorAll('#navMenu button').forEach(btn=>{
+  btn.addEventListener('click', async (e)=>{
+    e.stopPropagation();
+    document.getElementById('navMenu').classList.remove('open');
+    await navigateTo(btn.dataset.view);
+    document.querySelectorAll('#navMenu button').forEach(b=>b.classList.toggle('active', b===btn));
+  });
+});
+document.getElementById('railToggleBtn').addEventListener('click', ()=>{
+  const rail = document.querySelector('.view.active .rail');
+  if(rail) rail.classList.toggle('open');
 });
 function switchView(view){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.view===view));
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id === 'view-'+view));
   if(view === 'canvas' && !canvasLoaded) initCanvas();
   if(view === 'mapas' && !mapsLoaded) initMapas();
+  if(view === 'grimorio' && !grimorioInited) initGrimorio();
 }
-async function confirmExportBeforeNavigate(){ /* export reminder disabled inline; beforeunload covers it */ }
 async function navigateTo(view){
-  const leavingEscribir = document.getElementById('view-escribir').classList.contains('active') && view !== 'escribir';
-  if(leavingEscribir && wsDirty){
+  const leavingFichasEditor = document.getElementById('view-fichas').classList.contains('active') && fichasMode==='editor' && view !== 'fichas';
+  if(leavingFichasEditor && wsDirty){
     openUnsavedGuard(document.getElementById('wsName').value,
       async ()=>{ await saveCurrentWorkspace(); switchView(view); },
-      async ()=>{ wsDirty=false; switchView(view); });
+      async ()=>{ wsDirty=false; setFichasMode('grid'); switchView(view); });
     return;
   }
   switchView(view);
@@ -864,7 +948,7 @@ async function renderHomeDashboard(){
     previewMeta.innerHTML = `<span>${escapeHtml(typeLabel)}</span><span>${escapeHtml(folderName)}</span>`;
     const recent = entriesIndex.slice().sort((a,b)=>(b.updatedAt||0)-(a.updatedAt||0)).slice(0,5);
     recentList.innerHTML = recent.map(item=>`<div class="home-recent-item" data-id="${item.id}"><span>${escapeHtml(item.name||'Sin nombre')}</span><span>${TYPES[item.type].glyph}</span></div>`).join('');
-    recentList.querySelectorAll('.home-recent-item').forEach(item=> item.addEventListener('click', ()=> openInEscribir(item.dataset.id)));
+    recentList.querySelectorAll('.home-recent-item').forEach(item=> item.addEventListener('click', ()=> openFichaEditor(item.dataset.id)));
   }
   if(currentMap){
     mapPreview.innerHTML = `<img src="${currentMap.image}" alt="${escapeHtml(currentMap.name)}"><div class="map-info"><strong>${escapeHtml(currentMap.name)}</strong></div>`;
@@ -876,24 +960,35 @@ async function renderHomeDashboard(){
 }
 
 /* ========================= EXPORT / IMPORT ========================= */
-async function exportProject(){
-  const project = { worldMeta, entriesIndex, canvasData, mapsIndex, journalEntries, sessionLog, entries:[], maps:[] };
-  for(const entry of entriesIndex){ const full = await storeGet('entry:'+entry.id); if(full) project.entries.push(full); }
-  for(const mapItem of mapsIndex){ const fullMap = await storeGet('map:'+mapItem.id); if(fullMap) project.maps.push(fullMap); }
-  const json = JSON.stringify(project, null, 2);
+function triggerDownload(json, name){
   const blob = new Blob([json], { type:'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `${(worldMeta.worldName||'codice').replace(/\s+/g,'_')}_project.json`;
+  a.href = url; a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  if(dirHandle){
-    try{
-      const fh = await dirHandle.getFileHandle((worldMeta.worldName||'codice').replace(/\s+/g,'_')+'_project.json', { create:true });
-      const w = await fh.createWritable(); await w.write(json); await w.close();
-    }catch(e){ console.warn('No se pudo escribir en la carpeta conectada', e); }
+}
+async function exportProject(){
+  const btn = document.getElementById('exportProjectBtn');
+  btn.classList.add('spinning'); btn.disabled = true;
+  try{
+    const project = { worldMeta, entriesIndex, canvasData, mapsIndex, journalEntries, sessionLog, entries:[], maps:[] };
+    for(const entry of entriesIndex){ const full = await storeGet('entry:'+entry.id); if(full) project.entries.push(full); }
+    for(const mapItem of mapsIndex){ const fullMap = await storeGet('map:'+mapItem.id); if(fullMap) project.maps.push(fullMap); }
+    const json = JSON.stringify(project, null, 2);
+    const fileName = `${(worldMeta.worldName||'codice').replace(/\s+/g,'_')}${PROJECT_FILE_NAME_SUFFIX}`;
+    if(dirHandle){
+      try{
+        const fh = await dirHandle.getFileHandle(fileName, { create:true });
+        const w = await fh.createWritable(); await w.write(json); await w.close();
+      }catch(e){ console.warn('No se pudo escribir en la carpeta, descargando como respaldo', e); triggerDownload(json, fileName); }
+    } else {
+      triggerDownload(json, fileName);
+    }
+  } finally {
+    btn.classList.remove('spinning'); btn.disabled = false;
   }
 }
-async function importProject(file){
+async function importProject(file, silent){
   try{
     const text = await file.text();
     const data = JSON.parse(text);
@@ -909,10 +1004,8 @@ async function importProject(file){
     for(const mapItem of importedMaps){ await storeSet('map:'+mapItem.id, mapItem); }
     await storeSet('canvas-data', data.canvasData || { nodes:[], edges:[] });
     canvasData = data.canvasData || { nodes:[], edges:[] };
-    journalEntries = data.journalEntries || [];
-    await storeSet('journal-entries', journalEntries);
-    sessionLog = data.sessionLog || [];
-    await storeSet('session-log', sessionLog);
+    journalEntries = data.journalEntries || []; await storeSet('journal-entries', journalEntries);
+    sessionLog = data.sessionLog || []; await storeSet('session-log', sessionLog);
     currentMap = null;
     await loadWorld();
     applyTheme();
@@ -920,7 +1013,7 @@ async function importProject(file){
     if(mapsLoaded) renderMapList();
     renderJournalList(); renderSessionList();
     clearDirty();
-    openModal({ title:'Proyecto importado', fields:[], submitLabel:'Cerrar' });
+    if(!silent) openModal({ title:'Proyecto importado', fields:[], submitLabel:'Cerrar' });
   } catch(err){
     openModal({ title:'Error al importar', fields:[], submitLabel:'Cerrar', message: err.message || 'El archivo no corresponde a un proyecto válido.' });
   }
@@ -932,14 +1025,11 @@ document.getElementById('projectImportFile').addEventListener('change', async (e
 /* ========================= WORLD META / FOLDERS ========================= */
 async function loadWorld(){
   const meta = await storeGet('world-meta');
+  const metaExisted = !!meta;
   if(meta) worldMeta = meta;
   worldMeta.folders = worldMeta.folders || [];
   worldMeta.settings = worldMeta.settings || {};
   document.getElementById('worldName').value = worldMeta.worldName;
-  if(worldMeta.settings.summaryFontSize){
-    document.documentElement.style.setProperty('--card-summary-size', worldMeta.settings.summaryFontSize+'px');
-    document.getElementById('summaryFontSize').value = worldMeta.settings.summaryFontSize;
-  }
   applyTheme();
 
   const idx = await storeGet('entries-index');
@@ -956,15 +1046,18 @@ async function loadWorld(){
   }
 
   renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard();
-  renderWsFolderOptions(null); renderEscRail();
+  renderWsFolderOptions(null);
+
+  if(!metaExisted && entriesIndex.length === 0 && !dirHandle){
+    openModal({
+      title:'¡Bienvenido a tu Códice!', fields:[], submitLabel:'Conectar carpeta', showDelete:true, deleteLabel:'Empezar de cero',
+      message:'¿Querés conectar una carpeta con un proyecto existente, o empezar de cero acá mismo?',
+      onSubmit: connectFolder, onDelete: ()=>{}
+    });
+  }
 }
 document.getElementById('worldName').addEventListener('change', async (e)=>{
   worldMeta.worldName = e.target.value.trim() || 'Mundo sin nombre';
-  await storeSet('world-meta', worldMeta); markDirty();
-});
-document.getElementById('summaryFontSize').addEventListener('input', async (e)=>{
-  document.documentElement.style.setProperty('--card-summary-size', e.target.value+'px');
-  worldMeta.settings.summaryFontSize = e.target.value;
   await storeSet('world-meta', worldMeta); markDirty();
 });
 document.getElementById('newFolderBtn').addEventListener('click', ()=>{
@@ -1034,7 +1127,7 @@ function renderTypeFilterList(){
   });
 }
 
-/* ========================= FICHAS GRID ========================= */
+/* ========================= FICHAS GRID (auto-fit summary) ========================= */
 document.getElementById('searchFichas').addEventListener('input', (e)=>{ searchTerm = e.target.value; renderFichasGrid(); });
 function filteredEntries(){
   let list = entriesIndex;
@@ -1047,11 +1140,17 @@ function filteredEntries(){
   }
   return list.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
 }
+function setFichasMode(mode){
+  fichasMode = mode;
+  document.getElementById('fichasGridWrap').style.display = mode==='grid' ? 'block' : 'none';
+  document.getElementById('workspaceInline').style.display = mode==='editor' ? 'block' : 'none';
+}
 function renderFichasGrid(){
   const grid = document.getElementById('fichasGrid');
   const list = filteredEntries();
   if(entriesIndex.length === 0){
     grid.innerHTML = `<div class="empty"><div class="glyph">⚙</div><div class="title">El taller está vacío</div><div class="sub">Creá tu primera ficha de personaje, lugar u objeto.</div></div>`;
+    document.getElementById('bulkBar').style.display = 'none';
     return;
   }
   if(list.length === 0){
@@ -1063,22 +1162,97 @@ function renderFichasGrid(){
     const pos = e.coverPosition || {x:50,y:50};
     const zoom = e.coverZoom || 1;
     const coverStyle = e.coverThumb ? `background-image:url('${e.coverThumb}');background-position:${pos.x}% ${pos.y}%;background-size:${zoom*100}%;` : '';
+    const checked = selectedIds.has(e.id);
     return `<div class="ficha-card" style="--type-color:${t.color}" data-id="${e.id}">
+      ${selectMode ? `<input type="checkbox" class="ficha-check" data-check="${e.id}" ${checked?'checked':''}>` : ''}
       <div class="ficha-cover" style="${coverStyle}">${e.coverThumb ? '' : t.glyph}</div>
       <div class="ficha-body">
         <div class="ficha-type">${t.glyph} ${t.label}</div>
         <div class="ficha-name">${escapeHtml(e.name||'Sin nombre')}</div>
-        <div class="ficha-summary">${escapeHtml(e.summary||'')}</div>
+        <div class="ficha-summary" data-summary>${escapeHtml(e.summary||'')}</div>
         ${(e.tags&&e.tags.length) ? `<div class="ficha-tags">${e.tags.map(tg=>`<span class="tag-pill">${escapeHtml(tg)}</span>`).join('')}</div>` : ''}
       </div>
     </div>`;
   }).join('')}</div>`;
-  grid.querySelectorAll('.ficha-card').forEach(card=> card.addEventListener('click', ()=> openInEscribir(card.dataset.id)));
+  grid.querySelectorAll('.ficha-card').forEach(card=>{
+    card.addEventListener('click', (e)=>{
+      const id = card.dataset.id;
+      if(selectMode){
+        if(e.target.dataset.check !== undefined){ /* handled by change listener */ }
+        else { if(selectedIds.has(id)) selectedIds.delete(id); else selectedIds.add(id); renderFichasGrid(); }
+        return;
+      }
+      openFichaEditor(id);
+    });
+  });
+  grid.querySelectorAll('[data-check]').forEach(chk=>{
+    chk.addEventListener('click', (e)=>e.stopPropagation());
+    chk.addEventListener('change', ()=>{
+      if(chk.checked) selectedIds.add(chk.dataset.check); else selectedIds.delete(chk.dataset.check);
+      renderBulkBar();
+    });
+  });
+  renderBulkBar();
+  autoFitSummaries();
 }
+function autoFitSummaries(){
+  document.querySelectorAll('[data-summary]').forEach(el=>{
+    let size = 13.5;
+    el.style.fontSize = size+'px';
+    let guard = 0;
+    while(el.scrollHeight > el.clientHeight + 1 && size > 10 && guard < 12){
+      size -= 0.5; el.style.fontSize = size+'px'; guard++;
+    }
+  });
+}
+window.addEventListener('resize', ()=>{ if(fichasMode==='grid') autoFitSummaries(); });
 
-/* ========================= WORKSPACE (Escribir, inline) ========================= */
+document.getElementById('selectModeBtn').addEventListener('click', ()=>{
+  selectMode = !selectMode; selectedIds.clear();
+  document.getElementById('selectModeBtn').classList.toggle('active', selectMode);
+  renderFichasGrid();
+});
+function renderBulkBar(){
+  const bar = document.getElementById('bulkBar');
+  if(!selectMode || selectedIds.size===0){ bar.style.display='none'; return; }
+  bar.style.display='flex';
+  document.getElementById('bulkCount').textContent = selectedIds.size + ' seleccionada(s)';
+}
+document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{ selectMode=false; selectedIds.clear(); document.getElementById('selectModeBtn').classList.remove('active'); renderFichasGrid(); });
+document.getElementById('bulkFolderBtn').addEventListener('click', ()=>{
+  openModal({
+    title:'Mover a carpeta', fields:[{ key:'folderId', label:'Carpeta', type:'select', options:[{value:'',label:'Sin carpeta'}, ...worldMeta.folders.map(f=>({value:f.id,label:f.name}))] }],
+    submitLabel:'Mover',
+    onSubmit: async (v)=>{
+      for(const id of selectedIds){
+        const full = await storeGet('entry:'+id);
+        if(full){ full.folderId = v.folderId || null; await storeSet('entry:'+id, full); }
+        const light = entriesIndex.find(e=>e.id===id); if(light) light.folderId = v.folderId || null;
+      }
+      await storeSet('entries-index', entriesIndex); markDirty();
+      selectMode=false; selectedIds.clear(); document.getElementById('selectModeBtn').classList.remove('active');
+      renderFolderList(); renderFichasGrid();
+    }
+  });
+});
+document.getElementById('bulkDeleteBtn').addEventListener('click', ()=>{
+  openConfirm({ title:'Eliminar fichas', message:`Se eliminarán ${selectedIds.size} ficha(s) de forma permanente.`, onConfirm: async ()=>{
+    for(const id of selectedIds){ await storeDelete('entry:'+id); }
+    entriesIndex = entriesIndex.filter(e=>!selectedIds.has(e.id));
+    await storeSet('entries-index', entriesIndex); markDirty();
+    selectMode=false; selectedIds.clear(); document.getElementById('selectModeBtn').classList.remove('active');
+    renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard();
+  }});
+});
+document.getElementById('bulkPrintBtn').addEventListener('click', async ()=>{
+  const items = [];
+  for(const id of selectedIds){ const full = await storeGet('entry:'+id); if(full) items.push(full); }
+  printEntries(items);
+});
+
+/* ========================= WORKSPACE (Fichas, unificado) ========================= */
 function defaultEntry(){
-  return { name:'', type:'personaje', folderId:null, tags:[], summary:'', content:'', coverImage:null, coverThumb:null,
+  return { name:'', type:'personaje', folderId:null, tags:[], summary:'', blocks:[], coverImage:null, coverThumb:null,
     coverPosition:{x:50,y:50}, coverZoom:1, enable5eSheet:false, stats:{}, spells:'', inventory:'' };
 }
 function renderWsTypeOptions(selected){
@@ -1105,14 +1279,77 @@ function update5EVisibility(){
     toggle.style.display = 'flex';
     panel.classList.toggle('active', wsEnable5E);
     document.getElementById('wsToggle5E').textContent = wsEnable5E ? 'Ocultar hoja 5E' : 'Activar hoja 5E';
-  } else {
-    toggle.style.display = 'none'; panel.classList.remove('active'); wsEnable5E = false;
-  }
+  } else { toggle.style.display = 'none'; panel.classList.remove('active'); wsEnable5E = false; }
 }
+function miniToolbarHtml(id){
+  return `<button type="button" class="mini-fmt-btn" data-fmt="bold" data-target="${id}"><b>N</b></button>
+    <button type="button" class="mini-fmt-btn" data-fmt="italic" data-target="${id}"><i>K</i></button>
+    <button type="button" class="mini-fmt-btn" data-fmt="underline" data-target="${id}"><u>S</u></button>`;
+}
+function renderBlocks(){
+  const wrap = document.getElementById('wsBlocks');
+  wrap.innerHTML = currentBlocks.map(b=>`
+    <div class="ws-block" data-id="${b.id}">
+      <div class="ws-block-header">
+        <input class="ws-block-title" value="${escapeHtml(b.title)}" data-block-title="${b.id}">
+        <div class="ws-block-toolbar">${miniToolbarHtml(b.id)}</div>
+        <button class="icon-btn mini-fmt-btn" data-block-img="${b.id}" title="Insertar imagen" type="button">🖼</button>
+        <button class="icon-btn mini-fmt-btn" data-block-del="${b.id}" title="Eliminar sección" type="button">✕</button>
+      </div>
+      <div class="ws-content" contenteditable="true" data-block-content="${b.id}" data-placeholder="Escribí aquí…">${b.html||''}</div>
+    </div>`).join('') || '<div class="hint" style="margin:14px 32px;">Sin secciones todavía. Usá "+ Añadir sección de texto" para empezar a escribir.</div>';
+  wireBlockEvents();
+}
+function wireBlockEvents(){
+  document.querySelectorAll('[data-block-title]').forEach(inp=>{
+    inp.addEventListener('input', ()=>{ const b = currentBlocks.find(x=>x.id===inp.dataset.blockTitle); if(b){ b.title = inp.value; markWsDirty(); } });
+  });
+  document.querySelectorAll('[data-block-content]').forEach(el=>{
+    el.addEventListener('input', ()=>{ const b = currentBlocks.find(x=>x.id===el.dataset.blockContent); if(b){ b.html = el.innerHTML; markWsDirty(); } });
+  });
+  document.querySelectorAll('[data-fmt]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const target = document.querySelector(`[data-block-content="${btn.dataset.target}"]`);
+      if(target){ target.focus(); document.execCommand(btn.dataset.fmt); markWsDirty(); }
+    });
+  });
+  document.querySelectorAll('[data-block-img]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const fileInput = document.getElementById('contentImgFile');
+      fileInput.dataset.forBlock = btn.dataset.blockImg;
+      fileInput.click();
+    });
+  });
+  document.querySelectorAll('[data-block-del]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentBlocks = currentBlocks.filter(b=>b.id!==btn.dataset.blockDel);
+      markWsDirty(); renderBlocks();
+    });
+  });
+}
+document.getElementById('addBlockBtn').addEventListener('click', ()=>{
+  currentBlocks.push({ id: uid(), title:'Nueva sección', html:'' });
+  markWsDirty(); renderBlocks();
+});
+document.getElementById('contentImgFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const dataUrl = await resizeImageFile(file, 800, 0.7);
+  const blockId = e.target.dataset.forBlock;
+  const target = document.querySelector(`[data-block-content="${blockId}"]`);
+  if(target){ target.focus(); document.execCommand('insertImage', false, dataUrl); const b = currentBlocks.find(x=>x.id===blockId); if(b) b.html = target.innerHTML; markWsDirty(); }
+  e.target.value = '';
+});
+
 async function loadEntryIntoWorkspace(id){
+  setFichasMode('editor');
   currentEntryId = id || null;
   let full = defaultEntry();
-  if(id){ const loaded = await storeGet('entry:'+id); if(loaded) full = Object.assign(defaultEntry(), loaded); }
+  if(id){
+    const loaded = await storeGet('entry:'+id);
+    if(loaded) full = Object.assign(defaultEntry(), loaded);
+    if(!loaded?.blocks && loaded?.content){ full.blocks = [{ id: uid(), title:'Notas', html: loaded.content }]; }
+  }
+  currentBlocks = (full.blocks||[]).map(b=>({...b}));
   wsCoverData = full.coverImage || null;
   wsCoverPos = full.coverPosition || { x:50, y:50 };
   wsCoverZoom = full.coverZoom || 1;
@@ -1134,14 +1371,13 @@ async function loadEntryIntoWorkspace(id){
   document.getElementById('wsProf').value = full.stats?.Prof || '';
   document.getElementById('wsSpells').value = full.spells || '';
   document.getElementById('wsInventory').value = full.inventory || '';
-  document.getElementById('wsContent').innerHTML = full.content || '';
   document.getElementById('wsCoverZoomInput').value = wsCoverZoom;
   applyCoverStyle();
   document.getElementById('wsDelete').style.display = id ? 'inline-block' : 'none';
   update5EVisibility();
+  renderBlocks();
   wsDirty = false;
   document.getElementById('wsDirtyHint').textContent = '';
-  renderEscRail();
 }
 function markWsDirty(){ wsDirty = true; document.getElementById('wsDirtyHint').textContent = '● cambios sin guardar'; }
 ['wsName','wsTags','wsSummary','wsSTR','wsDEX','wsCON','wsINT','wsWIS','wsCHA','wsHP','wsAC','wsSpeed','wsProf','wsSpells','wsInventory'].forEach(id=>{
@@ -1149,10 +1385,9 @@ function markWsDirty(){ wsDirty = true; document.getElementById('wsDirtyHint').t
 });
 document.getElementById('wsType').addEventListener('change', ()=>{ markWsDirty(); update5EVisibility(); });
 document.getElementById('wsFolder').addEventListener('change', markWsDirty);
-document.getElementById('wsContent').addEventListener('input', ()=>{ markWsDirty(); });
 document.getElementById('wsToggle5E').addEventListener('click', ()=>{ wsEnable5E = !wsEnable5E; markWsDirty(); update5EVisibility(); });
 
-document.getElementById('wsCover').addEventListener('click', (e)=>{ if(!wsCoverData) document.getElementById('wsCoverFile').click(); });
+document.getElementById('wsCover').addEventListener('click', ()=>{ if(!wsCoverData) document.getElementById('wsCoverFile').click(); });
 document.getElementById('wsCoverFile').addEventListener('change', async (e)=>{
   const file = e.target.files[0]; if(!file) return;
   wsCoverData = await resizeImageFile(file, 900, 0.75);
@@ -1174,19 +1409,7 @@ window.addEventListener('mousemove', (e)=>{
   }
 });
 window.addEventListener('mouseup', ()=>{ coverDragState = null; });
-document.getElementById('wsCoverZoomInput').addEventListener('input', (e)=>{
-  wsCoverZoom = parseFloat(e.target.value); applyCoverStyle(); markWsDirty();
-});
-
-document.getElementById('insertImgBtn').addEventListener('click', ()=> document.getElementById('contentImgFile').click());
-document.getElementById('contentImgFile').addEventListener('change', async (e)=>{
-  const file = e.target.files[0]; if(!file) return;
-  const dataUrl = await resizeImageFile(file, 800, 0.7);
-  document.getElementById('wsContent').focus();
-  document.execCommand('insertImage', false, dataUrl);
-  markWsDirty();
-  e.target.value = '';
-});
+document.getElementById('wsCoverZoomInput').addEventListener('input', (e)=>{ wsCoverZoom = parseFloat(e.target.value); applyCoverStyle(); markWsDirty(); });
 
 async function saveCurrentWorkspace(){
   const name = document.getElementById('wsName').value.trim();
@@ -1195,7 +1418,6 @@ async function saveCurrentWorkspace(){
   const folderId = document.getElementById('wsFolder').value || null;
   const tags = document.getElementById('wsTags').value.split(',').map(t=>t.trim()).filter(Boolean);
   const summary = document.getElementById('wsSummary').value.trim();
-  const content = document.getElementById('wsContent').innerHTML;
   const stats = {
     STR: document.getElementById('wsSTR').value, DEX: document.getElementById('wsDEX').value, CON: document.getElementById('wsCON').value,
     INT: document.getElementById('wsINT').value, WIS: document.getElementById('wsWIS').value, CHA: document.getElementById('wsCHA').value,
@@ -1205,7 +1427,7 @@ async function saveCurrentWorkspace(){
   const inventory = document.getElementById('wsInventory').value.trim();
   const id = currentEntryId || uid();
   const now = Date.now();
-  const full = { id, name, type, folderId, tags, summary, content, stats, spells, inventory, enable5eSheet: wsEnable5E,
+  const full = { id, name, type, folderId, tags, summary, blocks: currentBlocks, stats, spells, inventory, enable5eSheet: wsEnable5E,
     coverImage: wsCoverData, coverThumb: wsCoverData, coverPosition: wsCoverPos, coverZoom: wsCoverZoom, updatedAt: now, createdAt: currentEntryId ? undefined : now };
   const prevIdx = entriesIndex.findIndex(e=>e.id===id);
   if(prevIdx>-1 && full.createdAt===undefined) full.createdAt = entriesIndex[prevIdx].createdAt || now;
@@ -1214,9 +1436,9 @@ async function saveCurrentWorkspace(){
   if(prevIdx>-1) entriesIndex[prevIdx] = lightEntry; else entriesIndex.push(lightEntry);
   await storeSet('entries-index', entriesIndex);
   currentEntryId = id; wsDirty = false;
-  document.getElementById('wsDirtyHint').textContent = 'Guardado ✓';
-  renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard(); renderEscRail();
+  renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard();
   if(canvasLoaded){ renderCanvasNodes(); renderCanvasEdges(); }
+  setFichasMode('grid');
   return true;
 }
 document.getElementById('wsSave').addEventListener('click', saveCurrentWorkspace);
@@ -1236,66 +1458,58 @@ document.getElementById('wsDelete').addEventListener('click', ()=>{
         await saveCanvas();
         if(canvasLoaded){ renderCanvasNodes(); renderCanvasEdges(); }
       }
-      markDirty(); wsDirty = false;
+      markDirty();
       renderFolderList(); renderTypeFilterList(); renderFichasGrid(); renderHomeDashboard();
-      await loadEntryIntoWorkspace(entriesIndex[0]?.id || null);
+      setFichasMode('grid');
     }
   });
 });
 
-function renderEscRail(){
-  const el = document.getElementById('escRailList');
-  const q = (document.getElementById('escSearch').value||'').toLowerCase();
-  let list = entriesIndex.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  if(q) list = list.filter(e=>(e.name||'').toLowerCase().includes(q));
-  el.innerHTML = list.map(e=>{
-    const t = TYPES[e.type]||TYPES.personaje;
-    return `<div class="rail-item esc-rail-item ${currentEntryId===e.id?'active':''}" data-id="${e.id}" style="border-left:2px solid ${t.color};">
-      <span>${t.glyph} ${escapeHtml(e.name||'Sin nombre')}</span></div>`;
-  }).join('') || '<div class="hint" style="margin:8px 0;">Sin fichas.</div>';
-  el.querySelectorAll('.esc-rail-item').forEach(item=> item.addEventListener('click', ()=> guardSwitchTo(item.dataset.id)));
-}
-document.getElementById('escSearch').addEventListener('input', renderEscRail);
-document.getElementById('escNewBtn').addEventListener('click', ()=> guardSwitchTo(null));
-function guardSwitchTo(id){
+async function openFichaEditor(id){
+  switchView('fichas');
+  const proceed = async ()=>{ await loadEntryIntoWorkspace(id); };
   if(wsDirty){
     openUnsavedGuard(document.getElementById('wsName').value,
-      async ()=>{ const ok = await saveCurrentWorkspace(); if(ok) await loadEntryIntoWorkspace(id); },
-      async ()=>{ wsDirty=false; await loadEntryIntoWorkspace(id); });
-  } else {
-    loadEntryIntoWorkspace(id);
-  }
+      async ()=>{ const ok = await saveCurrentWorkspace(); if(ok) await proceed(); },
+      async ()=>{ wsDirty=false; await proceed(); });
+  } else { await proceed(); }
 }
-async function openInEscribir(id){
-  switchView('escribir');
+document.getElementById('newFichaBtn').addEventListener('click', ()=> openFichaEditor(null));
+document.getElementById('newFichaBtnHome').addEventListener('click', ()=> openFichaEditor(null));
+document.getElementById('backToGridBtn').addEventListener('click', ()=>{
   if(wsDirty){
     openUnsavedGuard(document.getElementById('wsName').value,
-      async ()=>{ const ok = await saveCurrentWorkspace(); if(ok) await loadEntryIntoWorkspace(id); },
-      async ()=>{ wsDirty=false; await loadEntryIntoWorkspace(id); });
-  } else {
-    await loadEntryIntoWorkspace(id);
-  }
-}
-document.getElementById('newFichaBtn').addEventListener('click', ()=> openInEscribir(null));
-document.getElementById('newFichaBtnHome').addEventListener('click', ()=> openInEscribir(null));
+      async ()=>{ await saveCurrentWorkspace(); },
+      ()=>{ wsDirty=false; setFichasMode('grid'); });
+  } else { setFichasMode('grid'); }
+});
+document.getElementById('wsSwitchBtn').addEventListener('click', ()=>{
+  if(entriesIndex.length===0) return;
+  openModal({
+    title:'Cambiar de ficha', wide:false,
+    fields:[{ key:'id', label:'Ficha', type:'select', options: entriesIndex.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(e=>({value:e.id,label:`${TYPES[e.type].glyph} ${e.name||'Sin nombre'}`})) }],
+    submitLabel:'Abrir',
+    onSubmit: (v)=> openFichaEditor(v.id)
+  });
+});
 document.getElementById('goToCanvasBtn').addEventListener('click', ()=> navigateTo('canvas'));
 document.getElementById('goToMapsBtn').addEventListener('click', ()=> navigateTo('mapas'));
 
-/* Grimoire picker */
-function openGrimoire(){
+/* Grimorio picker (básico, panel lateral de la ficha) */
+document.getElementById('openGrimoireBtn').addEventListener('click', ()=>{
   const overlay = document.getElementById('modalOverlay');
   const box = document.getElementById('modalBox');
-  box.style.width = 'min(560px,92vw)';
+  box.style.width = 'min(520px,92vw)';
   const renderList = (q='') => {
     const filtered = GRIMOIRE.filter(s => !q || s.name.toLowerCase().includes(q.toLowerCase()));
     return filtered.slice(0,60).map(s=>`
       <div class="grimoire-row">
-        <div><strong>${escapeHtml(s.name)}</strong><br><span class="hint" style="margin:0;">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)}</span></div>
+        <div><strong>${escapeHtml(s.name)}</strong><br><span class="hint">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)}</span></div>
         <button class="rail-btn" data-add="${escapeHtml(s.name)}" type="button">+ Agregar</button>
       </div>`).join('') || '<div class="hint" style="margin:10px 0;">Sin resultados.</div>';
   };
   box.innerHTML = `
-    <div class="modal-title">Grimorio 5E</div>
+    <div class="modal-title">Grimorio básico</div>
     <input class="search-input" id="grimoireSearch" placeholder="Buscar hechizo…" style="margin-bottom:12px;width:100%;">
     <div id="grimoireResults" style="max-height:360px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">${renderList()}</div>
     <div class="modal-actions"><div></div><div><button class="btn-ghost" id="modalCancel">Cerrar</button></div></div>`;
@@ -1308,41 +1522,45 @@ function openGrimoire(){
         const ta = document.getElementById('wsSpells');
         const line = `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`;
         ta.value = ta.value ? ta.value + '\n' + line : line;
-        markWsDirty();
-        btn.textContent = 'Agregado ✓'; btn.disabled = true;
+        markWsDirty(); btn.textContent = 'Agregado ✓'; btn.disabled = true;
       });
     });
   };
   wire();
-  document.getElementById('grimoireSearch').addEventListener('input', (e)=>{
-    document.getElementById('grimoireResults').innerHTML = renderList(e.target.value);
-    wire();
-  });
+  document.getElementById('grimoireSearch').addEventListener('input', (e)=>{ document.getElementById('grimoireResults').innerHTML = renderList(e.target.value); wire(); });
   setTimeout(()=>document.getElementById('grimoireSearch').focus(), 30);
-}
-document.getElementById('openGrimoireBtn').addEventListener('click', openGrimoire);
+});
 
 /* Print */
+function buildPrintHtml(entries){
+  return `<html><head><title>Fichas</title><style>
+    body{ font-family: Georgia, serif; padding:40px; color:#231914; max-width:760px; margin:auto; }
+    h1{ font-size:26px; margin-bottom:4px; } .meta{ color:#7d5f2c; font-size:12px; margin-bottom:16px; }
+    img{ max-width:100%; border-radius:6px; } .cover{ width:100%; max-height:240px; object-fit:cover; border-radius:8px; margin-bottom:16px; }
+    .summary{ font-style:italic; margin-bottom:16px; } .entry-block{ margin-bottom:14px; }
+    .entry-block h3{ font-size:15px; color:#7d5f2c; margin-bottom:4px; }
+    .page-break{ page-break-after: always; margin-bottom:40px; border-bottom:1px dashed #ccc; padding-bottom:30px; }
+  </style></head><body>
+  ${entries.map(full=>`
+    <div class="page-break">
+      ${full.coverImage?`<img class="cover" src="${full.coverImage}">`:''}
+      <h1>${escapeHtml(full.name)}</h1>
+      <div class="meta">${escapeHtml(TYPES[full.type]?.label||'')} ${full.tags?.length?'· '+escapeHtml(full.tags.join(', ')):''}</div>
+      ${full.summary?`<p class="summary">${escapeHtml(full.summary)}</p>`:''}
+      ${(full.blocks||[]).map(b=>`<div class="entry-block"><h3>${escapeHtml(b.title)}</h3><div>${b.html||''}</div></div>`).join('')}
+    </div>`).join('')}
+  </body></html>`;
+}
 function printEntry(){
   const name = document.getElementById('wsName').value || 'Ficha';
-  const type = TYPES[document.getElementById('wsType').value]?.label || '';
-  const tags = document.getElementById('wsTags').value;
-  const summary = document.getElementById('wsSummary').value;
-  const content = document.getElementById('wsContent').innerHTML;
-  const cover = wsCoverData;
+  const full = { name, type: document.getElementById('wsType').value, tags: document.getElementById('wsTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+    summary: document.getElementById('wsSummary').value, coverImage: wsCoverData, blocks: currentBlocks };
+  printEntries([full]);
+}
+function printEntries(entries){
   const win = window.open('', '_blank');
   if(!win) return;
-  win.document.write(`<html><head><title>${escapeHtml(name)}</title><style>
-    body{ font-family: Georgia, serif; padding:40px; color:#231914; max-width:700px; margin:auto; }
-    h1{ font-size:28px; margin-bottom:4px; } .meta{ color:#7d5f2c; font-size:13px; margin-bottom:20px; }
-    img{ max-width:100%; border-radius:6px; } .cover{ width:100%; max-height:280px; object-fit:cover; border-radius:8px; margin-bottom:20px; }
-    .summary{ font-style:italic; margin-bottom:20px; }
-  </style></head><body>
-    ${cover?`<img class="cover" src="${cover}">`:''}
-    <h1>${escapeHtml(name)}</h1><div class="meta">${escapeHtml(type)} ${tags?'· '+escapeHtml(tags):''}</div>
-    ${summary?`<p class="summary">${escapeHtml(summary)}</p>`:''}
-    <div>${content}</div>
-  </body></html>`);
+  win.document.write(buildPrintHtml(entries));
   win.document.close(); win.focus();
   setTimeout(()=>win.print(), 400);
 }
@@ -1381,7 +1599,7 @@ function buildNodeEl(node){
       ${entry && entry.coverThumb ? `<div class="node-thumb" style="background-image:url('${entry.coverThumb}')"></div>` : ''}
       <div class="node-type">${t.glyph} ${t.label}</div>
       <div class="node-title">${escapeHtml(entry ? entry.name : 'Ficha eliminada')}</div>`;
-    el.addEventListener('dblclick', (e)=>{ e.stopPropagation(); if(entry) openInEscribir(entry.id); });
+    el.addEventListener('dblclick', (e)=>{ e.stopPropagation(); if(entry) openFichaEditor(entry.id); });
   } else {
     el.innerHTML = `<span class="node-del" data-del="${node.id}">✕</span>`;
     const ta = document.createElement('textarea');
@@ -1462,7 +1680,7 @@ document.getElementById('addFichaNodeBtn').addEventListener('click', ()=>{
 document.getElementById('connectModeBtn').addEventListener('click', (e)=>{
   connectMode = !connectMode; connectSrc = null;
   e.target.classList.toggle('active', connectMode);
-  document.getElementById('canvasHint').textContent = connectMode ? 'Click en dos fichas para conectarlas' : 'Arrastrá el fondo para mover el lienzo';
+  document.getElementById('canvasHint').textContent = connectMode ? 'Click en dos fichas para conectarlas' : 'Arrastrá el fondo para mover el lienzo, o arrastrá los chips de la derecha';
   document.querySelectorAll('.canvas-node').forEach(n=>n.classList.remove('connecting-src'));
 });
 document.getElementById('zoomInBtn').addEventListener('click', ()=>{ canvasZoom = Math.min(2, canvasZoom+0.15); applyCanvasTransform(); });
@@ -1470,7 +1688,7 @@ document.getElementById('zoomOutBtn').addEventListener('click', ()=>{ canvasZoom
 const canvasViewport = document.getElementById('canvasViewport');
 canvasViewport.addEventListener('mousedown', (e)=>{
   if(connectMode) return;
-  if(e.target.closest('.canvas-node') || e.target.closest('.edge-del')) return;
+  if(e.target.closest('.canvas-node') || e.target.closest('.edge-del') || e.target.closest('.palette-chip')) return;
   e.preventDefault();
   canvasViewport.classList.add('panning');
   panningCanvas = { startX: e.clientX, startY: e.clientY, origX: canvasPan.x, origY: canvasPan.y };
@@ -1500,6 +1718,29 @@ canvasViewport.addEventListener('wheel', (e)=>{
   canvasZoom = Math.max(0.4, Math.min(2, canvasZoom + (e.deltaY < 0 ? 0.08 : -0.08)));
   applyCanvasTransform();
 }, { passive:false });
+document.querySelectorAll('.palette-chip').forEach(chip=>{
+  chip.addEventListener('dragstart', (e)=>{ e.dataTransfer.setData('text/kind', chip.dataset.kind); });
+});
+canvasViewport.addEventListener('dragover', (e)=> e.preventDefault());
+canvasViewport.addEventListener('drop', async (e)=>{
+  e.preventDefault();
+  const kind = e.dataTransfer.getData('text/kind');
+  if(!kind) return;
+  const rect = canvasViewport.getBoundingClientRect();
+  const x = (e.clientX - rect.left - canvasPan.x)/canvasZoom;
+  const y = (e.clientY - rect.top - canvasPan.y)/canvasZoom;
+  if(kind === 'note'){
+    canvasData.nodes.push({ id: uid(), kind:'note', text:'', x, y });
+    await saveCanvas(); renderCanvasNodes(); renderCanvasEdges();
+  } else if(kind === 'entry'){
+    if(entriesIndex.length===0) return;
+    openModal({
+      title:'Elegí una ficha', fields:[{ key:'entryId', label:'Ficha', type:'select', options: entriesIndex.map(en=>({value:en.id,label:`${TYPES[en.type].glyph} ${en.name}`})) }],
+      submitLabel:'Agregar',
+      onSubmit: async (v)=>{ canvasData.nodes.push({ id: uid(), kind:'entry', entryId: v.entryId, x, y }); await saveCanvas(); renderCanvasNodes(); renderCanvasEdges(); }
+    });
+  }
+});
 
 /* ========================= MAPAS ========================= */
 async function initMapas(){
@@ -1679,19 +1920,22 @@ function renderRegions(){
   }
 }
 
-/* ========================= DIARIO DEL VIAJERO ========================= */
+/* ========================= DIARIO (capítulos) ========================= */
 function renderJournalList(){
   const el = document.getElementById('journalList');
-  const sorted = journalEntries.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
-  el.innerHTML = sorted.map(j=>`<div class="rail-item ${currentJournalId===j.id?'active':''}" data-id="${j.id}"><span>${escapeHtml(j.title||'Sin título')}</span><span class="rail-count">${j.date||''}</span></div>`).join('') || '<div class="hint" style="margin:8px 0;">Sin entradas.</div>';
+  const sorted = journalEntries.slice().sort((a,b)=> (a.order||0)-(b.order||0));
+  el.innerHTML = sorted.map((j,idx)=>`<div class="rail-item ${currentJournalId===j.id?'active':''}" data-id="${j.id}"><span>Cap. ${idx+1} — ${escapeHtml(j.title||'Sin título')}</span></div>`).join('') || '<div class="hint" style="margin:8px 0;">Sin capítulos.</div>';
   el.querySelectorAll('.rail-item').forEach(item=> item.addEventListener('click', ()=> loadJournalEntry(item.dataset.id)));
 }
 function loadJournalEntry(id){
   currentJournalId = id;
+  const sorted = journalEntries.slice().sort((a,b)=> (a.order||0)-(b.order||0));
   const j = journalEntries.find(x=>x.id===id);
   document.getElementById('journalEmpty').style.display = j ? 'none' : 'flex';
   document.getElementById('journalEditor').style.display = j ? 'block' : 'none';
   if(j){
+    const idx = sorted.findIndex(x=>x.id===id);
+    document.getElementById('journalNum').textContent = 'Capítulo ' + (idx+1);
     document.getElementById('journalTitle').value = j.title || '';
     document.getElementById('journalDate').value = j.date || '';
     document.getElementById('journalContent').innerHTML = j.content || '';
@@ -1699,12 +1943,20 @@ function loadJournalEntry(id){
   renderJournalList();
 }
 document.getElementById('newJournalBtn').addEventListener('click', async ()=>{
-  const j = { id:uid(), title:'Nueva entrada', date: new Date().toISOString().slice(0,10), content:'' };
+  const j = { id:uid(), title:'', date: new Date().toISOString().slice(0,10), content:'', order: journalEntries.length };
   journalEntries.push(j); await storeSet('journal-entries', journalEntries); markDirty();
   loadJournalEntry(j.id);
 });
 document.getElementById('journalTitle').addEventListener('keydown', (e)=>{
   if(e.key==='Enter'){ e.preventDefault(); document.getElementById('journalContent').focus(); }
+});
+document.getElementById('journalInsertImgBtn').addEventListener('click', ()=> document.getElementById('journalImgFile').click());
+document.getElementById('journalImgFile').addEventListener('change', async (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const dataUrl = await resizeImageFile(file, 800, 0.7);
+  document.getElementById('journalContent').focus();
+  document.execCommand('insertImage', false, dataUrl);
+  e.target.value='';
 });
 document.getElementById('journalSave').addEventListener('click', async ()=>{
   const j = journalEntries.find(x=>x.id===currentJournalId); if(!j) return;
@@ -1715,22 +1967,14 @@ document.getElementById('journalSave').addEventListener('click', async ()=>{
 });
 document.getElementById('journalDelete').addEventListener('click', ()=>{
   if(!currentJournalId) return;
-  openConfirm({ title:'Eliminar entrada', message:'Esta entrada del diario se eliminará.', onConfirm: async ()=>{
+  openConfirm({ title:'Eliminar capítulo', message:'Este capítulo del diario se eliminará.', onConfirm: async ()=>{
     journalEntries = journalEntries.filter(x=>x.id!==currentJournalId);
     await storeSet('journal-entries', journalEntries); markDirty();
     currentJournalId = null; loadJournalEntry(null);
   }});
 });
-document.getElementById('journalInsertImgBtn').addEventListener('click', ()=> document.getElementById('journalImgFile').click());
-document.getElementById('journalImgFile').addEventListener('change', async (e)=>{
-  const file = e.target.files[0]; if(!file) return;
-  const dataUrl = await resizeImageFile(file, 800, 0.7);
-  document.getElementById('journalContent').focus();
-  document.execCommand('insertImage', false, dataUrl);
-  e.target.value='';
-});
 
-/* ========================= BITÁCORA DE SESIONES ========================= */
+/* ========================= BITÁCORA ========================= */
 function renderSessionList(){
   const el = document.getElementById('sessionList');
   const sorted = sessionLog.slice().sort((a,b)=> (b.date||'').localeCompare(a.date||''));
@@ -1782,13 +2026,99 @@ document.getElementById('sessionDelete').addEventListener('click', ()=>{
   }});
 });
 
+/* ========================= GRIMORIO (tab dedicado) ========================= */
+function initGrimorio(){
+  grimorioInited = true;
+  refreshGrimoireTargetSelect();
+  renderGrimoireBasicList();
+}
+function refreshGrimoireTargetSelect(){
+  const sel = document.getElementById('grimoireTargetEntry');
+  const personajes = entriesIndex.filter(e=>e.type==='personaje');
+  sel.innerHTML = personajes.length ? personajes.map(e=>`<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('') : '<option value="">(sin personajes creados)</option>';
+}
+function renderGrimoireBasicList(q=''){
+  const el = document.getElementById('grimoireBasicList');
+  const filtered = GRIMOIRE.filter(s=> !q || s.name.toLowerCase().includes(q.toLowerCase()));
+  el.innerHTML = filtered.map(s=>`
+    <div class="ficha-card" style="cursor:default;">
+      <div class="ficha-body">
+        <div class="ficha-type">${s.level===0?'Truco':'Nivel '+s.level} · ${escapeHtml(s.school)}</div>
+        <div class="ficha-name" style="font-size:15px;">${escapeHtml(s.name)}</div>
+        <div class="ficha-summary" style="max-height:4.2em;">${escapeHtml(s.blurb)}</div>
+        <button class="rail-btn" style="margin-top:8px;" data-add-basic="${escapeHtml(s.name)}" type="button">+ Agregar a ficha</button>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('[data-add-basic]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const targetId = document.getElementById('grimoireTargetEntry').value;
+      if(!targetId){ return; }
+      const spell = GRIMOIRE.find(s=>s.name===btn.dataset.addBasic);
+      await addSpellLineToEntry(targetId, `${spell.name} (${spell.level===0?'Truco':'Nv '+spell.level}, ${spell.school}) — ${spell.blurb}`);
+      btn.textContent = 'Agregado ✓';
+    });
+  });
+}
+document.getElementById('grimoireBasicSearch').addEventListener('input', (e)=> renderGrimoireBasicList(e.target.value));
+async function addSpellLineToEntry(entryId, line){
+  const full = await storeGet('entry:'+entryId);
+  if(!full) return;
+  full.spells = full.spells ? full.spells + '\n' + line : line;
+  await storeSet('entry:'+entryId, full);
+  markDirty();
+  if(currentEntryId === entryId && fichasMode==='editor'){ document.getElementById('wsSpells').value = full.spells; }
+}
+document.getElementById('grimoireApiSearchBtn').addEventListener('click', async ()=>{
+  const q = document.getElementById('grimoireApiSearch').value.trim();
+  const results = document.getElementById('grimoireApiResults');
+  results.innerHTML = '<div class="hint">Buscando…</div>';
+  try{
+    const res = await fetch('https://www.dnd5eapi.co/api/spells' + (q ? '?name='+encodeURIComponent(q) : ''));
+    if(!res.ok) throw new Error('API error');
+    const data = await res.json();
+    const items = data.results || [];
+    if(items.length===0){ results.innerHTML = '<div class="hint">Sin resultados.</div>'; return; }
+    results.innerHTML = items.slice(0,30).map(it=>`
+      <div class="grimoire-row" style="margin-bottom:8px;">
+        <div><strong>${escapeHtml(it.name)}</strong></div>
+        <button class="rail-btn" data-api-spell="${escapeHtml(it.url)}" type="button">+ Agregar</button>
+      </div>`).join('');
+    results.querySelectorAll('[data-api-spell]').forEach(btn=>{
+      btn.addEventListener('click', async ()=>{
+        const targetId = document.getElementById('grimoireTargetEntry').value;
+        if(!targetId){ btn.textContent='Elegí un personaje'; return; }
+        try{
+          const detailRes = await fetch('https://www.dnd5eapi.co'+btn.dataset.apiSpell);
+          const detail = await detailRes.json();
+          const desc = Array.isArray(detail.desc) ? detail.desc.join(' ') : '';
+          const shortDesc = desc.slice(0,180) + (desc.length>180?'…':'');
+          const line = `${detail.name} (Nv ${detail.level}, ${detail.school?.name||''}) — ${shortDesc} [en inglés, fuente: dnd5eapi.co]`;
+          await addSpellLineToEntry(targetId, line);
+          btn.textContent = 'Agregado ✓';
+        }catch(e){ btn.textContent = 'Error de conexión'; }
+      });
+    });
+  }catch(e){
+    results.innerHTML = '<div class="hint">No se pudo conectar con la API en este entorno. Probá el grimorio básico de arriba mientras tanto.</div>';
+  }
+});
+
+/* ========================= MANIFEST (PWA best-effort) ========================= */
+try{
+  const manifest = { name:'Códice', short_name:'Códice', start_url:'.', display:'standalone', background_color:'#0d0906', theme_color:'#0d0906' };
+  const manifestBlob = new Blob([JSON.stringify(manifest)], { type:'application/json' });
+  document.getElementById('manifestLink').setAttribute('href', URL.createObjectURL(manifestBlob));
+}catch(e){}
+
 /* ========================= INIT ========================= */
 async function loadExtras(){
   const jr = await storeGet('journal-entries'); journalEntries = jr || [];
   const sl = await storeGet('session-log'); sessionLog = sl || [];
   renderJournalList(); renderSessionList();
 }
-loadWorld().then(()=>{ loadEntryIntoWorkspace(entriesIndex[0]?.id || null); });
+renderWsTypeOptions('personaje');
+renderWsFolderOptions(null);
+loadWorld();
 loadExtras();
 </script>
 </body>
