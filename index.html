@@ -632,7 +632,6 @@ async function loadSpellsDB(){
     const data = await res.json();
     spellsDB = Array.isArray(data) ? data : GRIMOIRE_FALLBACK;
   }catch(e){
-    console.warn('Error loading all.json, using fallback:', e);
     spellsDB = GRIMOIRE_FALLBACK;
   }
   // Normalizar a la forma que usa la UI: { name, level, school, classes, blurb }
@@ -640,22 +639,11 @@ async function loadSpellsDB(){
     const name = s.name || s.nombre || s.nombre_es || '';
     const level = s.level || s.nivel || 0;
     const school = (s.school && (typeof s.school === 'string' ? s.school : s.school.name)) || s.escuela || '';
-    // Corrección: lógica simplificada para classes/clases
-    let classes = [];
-    if (Array.isArray(s.classes)) {
-      classes = s.classes;
-    } else if (Array.isArray(s.clases)) {
-      classes = s.clases;
-    } else if (s.classes) {
-      classes = [s.classes];
-    } else if (s.clases) {
-      classes = [s.clases];
-    }
+    const classes = s.classes || s.clases || (Array.isArray(s.clases) ? s.clases : []) || (s.clases ? [s.clases] : []) || [];
     const blurb = (s.desc && (Array.isArray(s.desc) ? s.desc.join(' ') : s.desc)) || (Array.isArray(s.descripcion) ? s.descripcion.join(' ') : s.descripcion) || s.blurb || '';
     return { name, level, school, classes, blurb };
   });
   spellsDBLoaded = true;
-  console.log('Grimorio loaded:', GRIMOIRE.length, 'spells');
 }
 
 /* Bases de datos livianas de armas/armaduras SRD para el inventario estructurado.
@@ -949,19 +937,13 @@ document.getElementById('folderBtn').addEventListener('click', connectFolder);
 
 /* ========================= NAV ========================= */
 function toggleNavDrawer(open){
-  const navMenu = document.getElementById('navMenu');
-  const navDrawerOverlay = document.getElementById('navDrawerOverlay');
-  const navEdgeBtn = document.getElementById('navEdgeBtn');
-  
-  const isOpen = open !== undefined ? open : !navMenu.classList.contains('open');
-  
-  // Sincronizar todos los estados visuales
-  navMenu.classList.toggle('open', isOpen);
-  navDrawerOverlay.classList.toggle('open', isOpen);
-  navEdgeBtn.classList.toggle('open', isOpen);
-  
+  const isOpen = open !== undefined ? open : !document.getElementById('navMenu').classList.contains('open');
+  document.getElementById('navMenu').classList.toggle('open', isOpen);
+  document.getElementById('navDrawerOverlay').classList.toggle('open', isOpen);
+  document.getElementById('navEdgeBtn').classList.toggle('open', isOpen);
   // Ajustar símbolo para evitar rotaciones inesperadas en algunos navegadores
-  if(navEdgeBtn) navEdgeBtn.textContent = isOpen ? '◂' : '▸';
+  const edgeBtn = document.getElementById('navEdgeBtn');
+  if(edgeBtn) edgeBtn.textContent = isOpen ? '◂' : '▸';
 }
 document.getElementById('navEdgeBtn').addEventListener('click', ()=> toggleNavDrawer());
 document.getElementById('navDrawerOverlay').addEventListener('click', ()=> toggleNavDrawer(false));
@@ -970,21 +952,9 @@ document.querySelectorAll('#navMenu button').forEach(btn=>{
     e.stopPropagation();
     toggleNavDrawer(false);
     await navigateTo(btn.dataset.view);
-    // Actualizar estado activo de los botones de navegación
     document.querySelectorAll('#navMenu button').forEach(b=>b.classList.toggle('active', b===btn));
   });
 });
-
-// Sincronizar estado inicial de navegación con la vista actual
-function syncNavState(){
-  const currentView = document.querySelector('.view.active');
-  if(currentView){
-    const viewName = currentView.id.replace('view-', '');
-    document.querySelectorAll('#navMenu button').forEach(btn=>{
-      btn.classList.toggle('active', btn.dataset.view === viewName);
-    });
-  }
-}
 document.getElementById('railToggleBtn').addEventListener('click', ()=>{
   const rail = document.querySelector('.view.active .rail');
   if(rail) rail.classList.toggle('open');
@@ -994,8 +964,6 @@ function switchView(view){
   if(view === 'canvas' && !canvasLoaded) initCanvas();
   if(view === 'mapas' && !mapsLoaded) initMapas();
   if(view === 'grimorio' && !grimorioInited) initGrimorio();
-  // Sincronizar estado de navegación
-  syncNavState();
 }
 async function navigateTo(view){
   const leavingFichasEditor = document.getElementById('view-fichas').classList.contains('active') && fichasMode==='editor' && view !== 'fichas';
@@ -1484,41 +1452,17 @@ document.getElementById('contentImgFile').addEventListener('change', async (e)=>
 async function loadEntryIntoWorkspace(id){
   setFichasMode('editor');
   currentEntryId = id || null;
-  
-  // LIMPIEZA COMPLETA del workspace antes de cargar nueva ficha
-  // Resetear todas las variables globales a valores predeterminados
-  wsCoverData = null;
-  wsCoverPos = { x:50, y:50 };
-  wsCoverZoom = 1;
-  wsEnable5E = false;
-  currentBlocks = [];
-  currentSpellsList = [];
-  currentInventoryData = { weapons:[], armors:[], other:'' };
-  coverDragState = null;
-  
-  // Limpiar elementos DOM del workspace
-  document.getElementById('wsCover').style.backgroundImage = '';
-  document.getElementById('wsCover').style.backgroundPosition = '50% 50%';
-  document.getElementById('wsCover').style.backgroundSize = '100%';
-  document.getElementById('wsCoverHint').style.display = 'block';
-  document.getElementById('wsCoverControls').style.display = 'none';
-  document.getElementById('wsCoverZoomInput').value = 1;
-  document.getElementById('wsBlocks').innerHTML = '';
-  document.getElementById('ws5ePanel').classList.remove('active');
-  document.getElementById('ws5eToggle').style.display = 'none';
-  
   let full = defaultEntry();
   if(id){
     const loaded = await storeGet('entry:'+id);
     if(loaded){
-      // Clonación profunda para evitar referencias compartidas
-      full = JSON.parse(JSON.stringify(Object.assign(defaultEntry(), loaded)));
+      full = Object.assign(defaultEntry(), loaded);
       if(!loaded.blocks && loaded.content){ full.blocks = [{ id: uid(), title:'Notas', html: loaded.content }]; }
     } else {
       // Si no existe la ficha completa en storage, usar la entrada ligera del índice para mostrar algo
       const light = entriesIndex.find(e=>e.id===id);
       if(light){
-        full = JSON.parse(JSON.stringify(Object.assign(defaultEntry(), {
+        full = Object.assign(defaultEntry(), {
           id: light.id,
           name: light.name || '',
           type: light.type || 'personaje',
@@ -1528,12 +1472,10 @@ async function loadEntryIntoWorkspace(id){
           coverImage: light.coverThumb || null,
           coverPosition: light.coverPosition || { x:50, y:50 },
           coverZoom: light.coverZoom || 1
-        })));
+        });
       }
     }
   }
-  
-  // Cargar datos desde la ficha (clonando profundamente para evitar referencias compartidas)
   currentBlocks = (full.blocks||[]).map(b=>({...b}));
   currentSpellsList = (full.spellsList||[]).map(s=>({...s}));
   if((!full.spellsList || full.spellsList.length===0) && full.spells){
@@ -1542,10 +1484,9 @@ async function loadEntryIntoWorkspace(id){
   currentInventoryData = full.inventoryData ? JSON.parse(JSON.stringify(full.inventoryData)) : { weapons:[], armors:[], other:'' };
   if(!full.inventoryData && full.inventory){ currentInventoryData.other = full.inventory; }
   wsCoverData = full.coverImage || full.coverThumb || null;
-  wsCoverPos = full.coverPosition ? { ...full.coverPosition } : { x:50, y:50 };
+  wsCoverPos = full.coverPosition || { x:50, y:50 };
   wsCoverZoom = full.coverZoom || 1;
   wsEnable5E = full.enable5eSheet || full.enable5E || full.enable5 || false;
-  
   renderWsTypeOptions(full.type);
   renderWsFolderOptions(full.folderId);
   document.getElementById('wsName').value = full.name || '';
@@ -1565,9 +1506,6 @@ async function loadEntryIntoWorkspace(id){
   document.getElementById('wsCoverZoomInput').value = wsCoverZoom;
   applyCoverStyle();
   document.getElementById('wsDelete').style.display = id ? 'inline-block' : 'none';
-  
-  // Importante: llamar a update5EVisibility() DESPUÉS de renderizar el tipo
-  // para asegurar que el toggle y el panel se muestren correctamente
   update5EVisibility();
   renderBlocks();
   // Render mini-grimorio dentro del editor (si existe)
